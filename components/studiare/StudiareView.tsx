@@ -34,22 +34,10 @@ export function StudiareView() {
     startSession(shuffle(due).map((c) => c.id));
   }, [hydrated, active, cards, startSession]);
 
-  // Esc-to-Coda — abort and navigate home.
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key !== "Escape") return;
-      const el = document.activeElement;
-      // If user is editing, let the first Esc clear focus instead of nuking the session.
-      if (el instanceof HTMLInputElement && el.value !== "") {
-        el.blur();
-        return;
-      }
-      abort();
-      router.push("/");
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [abort, router]);
+  // Esc-to-Coda is now handled globally in ClientShell via useEscToCoda.
+  // The session is intentionally NOT aborted on Esc — leaving the page
+  // simply returns the user to Coda; re-visiting /studiare picks up from
+  // where they left off because the active session is in-memory only.
 
   if (!hydrated) {
     return (

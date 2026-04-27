@@ -87,25 +87,7 @@ export function DettaturaView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, duration]);
 
-  // Esc returns to Coda.
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key !== "Escape") return;
-      const el = document.activeElement;
-      if (
-        el instanceof HTMLDivElement &&
-        el.isContentEditable &&
-        (el.textContent ?? "") !== ""
-      ) {
-        // Let the user clear input first.
-        if (inputRef.current) inputRef.current.set("");
-        return;
-      }
-      router.push("/");
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [router]);
+  // Esc-to-Coda is handled globally in ClientShell via useEscToCoda.
 
   useEffect(() => {
     return () => clearTick();

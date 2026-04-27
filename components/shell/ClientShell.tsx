@@ -4,12 +4,16 @@ import { useEffect } from "react";
 import { useDeckStore } from "@/lib/store/deck";
 import { useUIStore, resolveTheme } from "@/lib/store/ui";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useAmbientWarmth } from "@/lib/hooks/useAmbientWarmth";
+import { useEscToCoda } from "@/lib/hooks/useEscToCoda";
 
 /**
  * Mounted once inside <body>. Responsibilities:
  *   1. Seed the deck on first run (after hydration).
  *   2. Sync UI store values to <html data-*> attributes for CSS to react to.
  *   3. Watch prefers-color-scheme when theme === "auto".
+ *   4. Run useAmbientWarmth (hour-of-day → --warm).
+ *   5. Run useEscToCoda (global Esc handler).
  *
  * Renders no DOM of its own — just side-effects + children pass-through.
  */
@@ -22,13 +26,15 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const severita = useUIStore((s) => s.severita);
   const errata = useUIStore((s) => s.errata);
 
+  useAmbientWarmth();
+  useEscToCoda();
+
   // 1. Seed once on first hydration.
   useEffect(() => {
     if (hydrated) seedIfEmpty();
   }, [hydrated, seedIfEmpty]);
 
-  // 2. Sync data-* attrs whenever UI prefs change. (Initial values are set on
-  //    server-side render via layout.tsx; this re-applies when the user toggles.)
+  // 2. Sync data-* attrs whenever UI prefs change.
   useEffect(() => {
     if (!hydrated) return;
     const root = document.documentElement;
