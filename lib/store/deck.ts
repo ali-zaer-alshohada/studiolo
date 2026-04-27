@@ -7,6 +7,7 @@ import { makeAllSeedCards, SEED_COUNT } from "@/data/seeds";
 import { srsCorrect, srsWrong } from "@/lib/srs/ladder";
 import { shouldSpawnChild, makeChild } from "@/lib/srs/child";
 import { bumpStreak } from "@/lib/date/streak";
+import type { DeckPayload } from "@/lib/io/types";
 
 /**
  * Domain state — the deck. Persisted as `postilla.state.v1` (matching the
@@ -43,6 +44,10 @@ export type DeckActions = {
   // SRS actions — implemented in M5.
   gradeCorrect: (cardId: string) => void;
   gradeWrong: (cardId: string, wrongInput: string, correctText: string, ctx: string) => void;
+  /** Replace the entire deck state with the given payload. Used by Importa → Sostituisci. */
+  importState: (payload: DeckPayload) => void;
+  /** Merge the payload into current state (dedupe cards by id, append+sort errors, MAX streak). */
+  mergeState: (payload: DeckPayload) => void;
 };
 
 const initialDeckState: DeckState = {
@@ -151,6 +156,34 @@ export const useDeckStore = create<DeckState & DeckActions>()(
           return { cards, errors: [...s.errors, errorEvent], ...streak };
         });
       },
+
+      importState: (payload) =>
+        set({
+          cards: payload.cards,
+          errors: payload.errors,
+          sessions: payload.sessions,
+          streakLastDay: payload.streakLastDay,
+          streakCount: payload.streakCount,
+          lastBackup: payload.lastBackup,
+          seeded: payload.cards.length > 0,
+        }),
+
+      mergeState: (payload) =>
+        set((s) => {
+          const existingIds = new Set(s.cards.map((c) => c.id));
+          const newCards = payload.cards.filter((c) => !existingIds.has(c.id));
+          const mergedErrors = [...s.errors, ...payload.errors].sort(
+            (a, b) => a.when - b.when,
+          );
+          return {
+            cards: [...s.cards, ...newCards],
+            errors: mergedErrors,
+            sessions: [...s.sessions, ...payload.sessions],
+            streakCount: Math.max(s.streakCount, payload.streakCount),
+            lastBackup: Date.now(),
+            seeded: true,
+          };
+        }),
     }),
     {
       name: "postilla.state.v1",
