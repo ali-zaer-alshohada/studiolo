@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# studiolo.
 
-## Getting Started
+> *un'edizione critica del tuo italiano*
 
-First, run the development server:
+A spaced-repetition Italian vocabulary app, built as a port of a high-fidelity HTML prototype. The thesis: **your wrong answers are not errors, they are evidence; the app is the apparatus that lets you study them.** Five views — Coda (home, errata hero), Studiare (3-column quiz), Aggiungi (writing surface), Dettatura (flash dictation), Statistiche (alphabetical concordance of every wrong answer you've ever given).
+
+Single-user, offline-first, no backend. All state lives in `localStorage`.
+
+---
+
+## Run it locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # → http://localhost:3000 (or 3210 via the studiolo-next launch entry)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Build a static copy (offline / static-host / USB stick)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build        # builds icons via prebuild, then writes out/
+npx serve out        # serves it locally — needed for the service worker to register
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To run from a flash drive / no-server context, open `out/index.html` directly via `file://`. The PWA service worker won't register over `file://`, so install/offline don't apply, but the app itself works (localStorage is available).
 
-## Learn More
+## Install the PWA
 
-To learn more about Next.js, take a look at the following resources:
+1. Build (`npm run build`) and serve (`npx serve out` or any HTTPS host)
+2. Visit in Chrome / Edge / Brave on desktop or Android
+3. Open the **Aspetto** panel (bottom-right `aspetto` button) — when the browser fires `beforeinstallprompt`, an `↗ installa app` button appears in the **backup** group. Click it to install.
+4. iOS Safari: use *Share → Add to Home Screen* (Safari doesn't fire the install event)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+After install: the app opens standalone, works offline, lives on your home screen.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## What's where
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+app/                  # Next.js routes — one file per view
+  layout.tsx          # HTML shell, wordmark, RunningHead, ClientShell, Aspetto panel mount
+  page.tsx            # Coda (page i)
+  studiare/           # the SRS quiz (page iii)
+  aggiungi/           # writing surface for new cards (page v)
+  dettatura/          # flash-then-write dictation (page vii)
+  statistiche/        # alphabetical concordance of errors (page xi)
+  manifest.ts         # PWA web manifest
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+components/
+  primitives/         # typographic atoms — Hairline, RuleAbove/Below, RomanNumeral, ErrataLine, ChipRow, TocRow, SmallCaps
+  shell/              # ClientShell, TweaksPanel, BackupGroup, ImportPreviewModal, InstallPrompt, RunningHead
+  coda/               # ErrataHero, AlarmBanner, DueLine, Toc, Filters, Colophon
+  studiare/           # SessionBar, QuizCard, Apparatus (ladder + postille), AccentKeys
+  aggiungi/           # ContentEditableZone, CategoryChips, AggiungiView
+  dettatura/          # FlashStage, DurataSlider, DettaturaFeedback
+  statistiche/        # StatTotals, Concordance
+
+lib/
+  srs/                # pure SRS module — ladder, queue, child-spawning, quiz grading, dettatura, concordance
+  store/              # Zustand stores: deck (persisted to postilla.state.v1), ui (studiolo.ui.v1), session (in-memory)
+  io/                 # exportJson, importJson, types
+  hooks/              # useHydrated, useAmbientWarmth, useEscToCoda
+  text/               # normalize, detectCat (Italian category heuristic)
+  date/               # todayStr, streak (timezone-naive, matches prototype)
+  ambient.ts          # currentWarm(hour) — drives --warm CSS variable
+
+data/
+  seeds.ts            # 25 seed cards from the prototype
+
+public/
+  favicon.svg         # source SVG for icons
+  icon-{192,512,maskable}.png  # generated by scripts/build-icons.mjs
+  sw.js               # hand-rolled service worker (stale-while-revalidate)
+
+scripts/
+  build-icons.mjs     # generates PNG icons from favicon.svg via sharp
+```
+
+## Aspetto panel — five axes
+
+Bottom-right of every page; click `Aspetto` to open.
+
+| axis | values | what it does |
+|---|---|---|
+| **tema** | giorno · notte · auto | light / dark / OS-preference |
+| **carattere** | antica · moderna | font set: humanist Iowan/Palatino vs Bodoni-style |
+| **severità** | standard · sobrio | density of editorial chrome (page numbers, dividers) |
+| **errata** | lezione · cronaca | format of the Coda errata block |
+| **backup** | esporta · importa · installa | JSON download / upload (preview-and-choose) / PWA install |
+
+`carattere=moderna` swaps the entire serif system in lockstep via one CSS variable (`--serif`). `tema=auto` listens for `prefers-color-scheme` changes.
+
+## SRS in 30 seconds
+
+- Two ladders. Normal cards: `[3, 6, 24, 72, 144]` hours. Chained children: `[1, 4, 24]` hours.
+- Right answer → rung += 1, due += `ladder[rung]` hours.
+- Wrong answer → rung = 0, due += `ladder[0]` hours, `wrongs++`, error logged.
+- After ≥ 2 wrongs on the same `(card, ctx)`, a **chained child** spawns — same en/it/cat as the parent, due immediately, on the tighter child ladder. Multiple ctxs (genere, ausiliare, preposizione, dettatura, …) can spawn parallel children for the same parent.
+- Esc anywhere returns to Coda; if you're typing in a field, first Esc clears focus.
+
+All SRS math is pure functions in `lib/srs/`. 131 unit + integration tests.
+
+## Export / import
+
+- **Esporta** writes `studiolo-YYYY-MM-DD.json` (envelope-versioned, contains the full deck + errors + sessions + streak).
+- **Importa** reads the file, validates it, shows a preview ("trovate N carte, M errori, ultima esportazione 12 aprile 2026") with three choices:
+  - **Sostituisci** — replaces current state with the import
+  - **Aggiungi** — merges (dedupe cards by id, append errors chronologically, MAX streak)
+  - **Annulla** — close, no change
+- Backwards compatible: accepts the original prototype's flat shape (no envelope).
+
+The Coda alarm banner ("backup raccomandato") clears once `lastBackup` is recent (≤ 7 days).
+
+## Phase 2 / 3 (out of scope for v1)
+
+- **Phase 2 — verb conjugation editor.** A dedicated `/aggiungi/verbo` page with a 4-tense × 6-pronoun grid, "regolare" auto-fill for regular -are/-ere/-ire, manual override for irregulars, essere/avere selection for passato prossimo. Path A (seeded conjugation tables for ~15 high-frequency verbs) ships first; Path B (the editor) follows.
+- **Phase 3** — backend / sync (Supabase or Convex), real audio for Dettatura via SpeechSynthesis (it-IT voice), print stylesheet, multi-language UI (currently Italian-only by design).
+
+## Tests
+
+```bash
+npm test             # full suite (Vitest, jsdom)
+npm test -- tests/srs/ladder.test.ts    # single file
+npm run test:coverage
+```
+
+131 tests across 14 files. SRS math, text helpers, date/streak, ambient buckets, IO (export/import), deck-store integration.
+
+## Stack
+
+Next.js 16 (App Router) · React 19 · TypeScript · Zustand 5 (with `persist`) · Vitest 4 · sharp (icon build only). System fonts only — no webfonts. Hand-rolled service worker, no `next-pwa` dependency.
+
+---
+
+Built April 2026 from the StudioIO design handoff. Prototype canonical at `studiolo.html` (the source-of-truth for any disagreement with this README).
