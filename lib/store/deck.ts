@@ -1,0 +1,192 @@
+"use client";
+
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import type { Card, ErrorEvent, Session } from "@/lib/srs/types";
+import { makeAllSeedCards, SEED_COUNT } from "@/data/seeds";
+import { srsCorrect, srsWrong } from "@/lib/srs/ladder";
+import { shouldSpawnChild, makeChild } from "@/lib/srs/child";
+import { bumpStreak } from "@/lib/date/streak";
+
+/**
+ * Domain state — the deck. Persisted as `postilla.state.v1` (matching the
+ * prototype's localStorage key exactly, so existing prototype users carry over
+ * once we add a one-time format migration).
+ *
+ * NOTE: SRS math (gradeCorrect / gradeWrong / spawnChild) is implemented in
+ * `lib/srs/` in M5. For M3 we ship action stubs that throw — sites that need
+ * grading don't exist yet (Studiare is M6).
+ */
+
+export type DeckState = {
+  cards: Card[];
+  errors: ErrorEvent[];
+  sessions: Session[];
+  streakLastDay: string | null;
+  streakCount: number;
+  lastBackup: number | null;
+  /** Has the deck been seeded yet? Prevents re-seeding after the user clears all cards. */
+  seeded: boolean;
+};
+
+export type DeckActions = {
+  /** Populate empty deck with the 25 prototype seeds. No-op if already seeded or non-empty. */
+  seedIfEmpty: () => void;
+  /** Force-seed (used by the gear panel's "carica esempi" button). */
+  loadSeeds: () => void;
+  /** Add a new card from a draft. Returns the created card's id. */
+  addCard: (draft: { en: string; it: string; cat: Card["cat"]; ctx?: string }) => string;
+  /** Wipe everything. Used by the danger button and by tests. */
+  resetAll: () => void;
+  /** Stamp the last-backup timestamp (called by exportJson). */
+  markBackedUp: () => void;
+  // SRS actions — implemented in M5.
+  gradeCorrect: (cardId: string) => void;
+  gradeWrong: (cardId: string, wrongInput: string, correctText: string, ctx: string) => void;
+};
+
+const initialDeckState: DeckState = {
+  cards: [],
+  errors: [],
+  sessions: [],
+  streakLastDay: null,
+  streakCount: 0,
+  lastBackup: null,
+  seeded: false,
+};
+
+export const useDeckStore = create<DeckState & DeckActions>()(
+  persist(
+    (set, get) => ({
+      ...initialDeckState,
+
+      seedIfEmpty: () => {
+        const s = get();
+        if (s.seeded || s.cards.length > 0) return;
+        set({ cards: makeAllSeedCards(Date.now()), seeded: true });
+      },
+
+      loadSeeds: () => {
+        const fresh = makeAllSeedCards(Date.now());
+        set((s) => ({ cards: [...s.cards, ...fresh], seeded: true }));
+      },
+
+      addCard: (draft) => {
+        const now = Date.now();
+        const id = `card-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        const card: Card = {
+          id,
+          en: draft.en,
+          it: draft.it,
+          cat: draft.cat,
+          ctx: draft.ctx,
+          rung: 0,
+          due: now,
+          wrongs: 0,
+          reviewed: 0,
+          history: [],
+          parentId: null,
+          isChild: false,
+          createdAt: now,
+        };
+        set((s) => ({ cards: [...s.cards, card] }));
+        return id;
+      },
+
+      resetAll: () => set({ ...initialDeckState }),
+
+      markBackedUp: () => set({ lastBackup: Date.now() }),
+
+      gradeCorrect: (cardId) => {
+        const now = Date.now();
+        set((s) => {
+          const idx = s.cards.findIndex((c) => c.id === cardId);
+          if (idx < 0) return s; // unknown card → no-op
+          const card = s.cards[idx];
+          if (!card) return s;
+          const updated = srsCorrect(card, now);
+          const cards = [...s.cards];
+          cards[idx] = updated;
+          const streak = bumpStreak(
+            { streakLastDay: s.streakLastDay, streakCount: s.streakCount },
+            now,
+          );
+          return { cards, ...streak };
+        });
+      },
+
+      gradeWrong: (cardId, wrongInput, correctText, ctx) => {
+        const now = Date.now();
+        set((s) => {
+          const idx = s.cards.findIndex((c) => c.id === cardId);
+          if (idx < 0) return s; // unknown card → no-op
+          const card = s.cards[idx];
+          if (!card) return s;
+
+          // 1. Update the card via the SRS wrong handler.
+          const updated = srsWrong(card, wrongInput, now);
+          const cards = [...s.cards];
+          cards[idx] = updated;
+
+          // 2. Maybe spawn a chained child (must check AFTER updating wrongs).
+          if (shouldSpawnChild(updated, cards, ctx)) {
+            cards.push(makeChild(updated, ctx, now));
+          }
+
+          // 3. Append the error event.
+          const errorEvent: ErrorEvent = {
+            cardId,
+            when: now,
+            wrong: wrongInput,
+            correct: correctText,
+            ctx,
+          };
+
+          // 4. Bump streak (engagement counts even on wrongs).
+          const streak = bumpStreak(
+            { streakLastDay: s.streakLastDay, streakCount: s.streakCount },
+            now,
+          );
+
+          return { cards, errors: [...s.errors, errorEvent], ...streak };
+        });
+      },
+    }),
+    {
+      name: "postilla.state.v1",
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      // Only persist data fields, not actions.
+      partialize: (s) => ({
+        cards: s.cards,
+        errors: s.errors,
+        sessions: s.sessions,
+        streakLastDay: s.streakLastDay,
+        streakCount: s.streakCount,
+        lastBackup: s.lastBackup,
+        seeded: s.seeded,
+      }),
+      // skipHydration: false (default) — Zustand reads localStorage on client mount.
+    },
+  ),
+);
+
+// ─── Selectors ───────────────────────────────────────────────────────
+
+export const selectCards = (s: DeckState): Card[] => s.cards;
+export const selectErrors = (s: DeckState): ErrorEvent[] => s.errors;
+export const selectStreak = (s: DeckState): number => s.streakCount;
+
+/** The N most recent errors, newest first. Useful for the Coda errata hero. */
+export function selectRecentErrors(n: number) {
+  return (s: DeckState): ErrorEvent[] =>
+    [...s.errors].sort((a, b) => b.when - a.when).slice(0, n);
+}
+
+/** Cards due now (epoch ms compared to Date.now()). M5 will move this to lib/srs/queue.ts. */
+export function selectDueCount(s: DeckState): number {
+  const now = Date.now();
+  return s.cards.filter((c) => c.due <= now).length;
+}
+
+export const SEED_TOTAL = SEED_COUNT;
