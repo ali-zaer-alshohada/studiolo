@@ -4,6 +4,8 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Card, ErrorEvent, Session } from "@/lib/srs/types";
 import { makeAllSeedCards, SEED_COUNT } from "@/data/seeds";
+import { makeAllSeedVerbs } from "@/data/seedVerbs";
+import type { ConjugationTable } from "@/lib/srs/types";
 import { srsCorrect, srsWrong } from "@/lib/srs/ladder";
 import { shouldSpawnChild, makeChild } from "@/lib/srs/child";
 import { bumpStreak } from "@/lib/date/streak";
@@ -35,8 +37,12 @@ export type DeckActions = {
   seedIfEmpty: () => void;
   /** Force-seed (used by the gear panel's "carica esempi" button). */
   loadSeeds: () => void;
+  /** Add the Phase-2 seed verbs if no card has a conjugation table yet. */
+  seedVerbsIfMissing: () => void;
   /** Add a new card from a draft. Returns the created card's id. */
   addCard: (draft: { en: string; it: string; cat: Card["cat"]; ctx?: string }) => string;
+  /** Add a verb card with a conjugation table. Returns the created card's id. */
+  addVerbCard: (draft: { en: string; it: string; conj: ConjugationTable }) => string;
   /** Wipe everything. Used by the danger button and by tests. */
   resetAll: () => void;
   /** Stamp the last-backup timestamp (called by exportJson). */
@@ -68,12 +74,24 @@ export const useDeckStore = create<DeckState & DeckActions>()(
       seedIfEmpty: () => {
         const s = get();
         if (s.seeded || s.cards.length > 0) return;
-        set({ cards: makeAllSeedCards(Date.now()), seeded: true });
+        const now = Date.now();
+        set({
+          cards: [...makeAllSeedCards(now), ...makeAllSeedVerbs(now)],
+          seeded: true,
+        });
       },
 
       loadSeeds: () => {
         const fresh = makeAllSeedCards(Date.now());
         set((s) => ({ cards: [...s.cards, ...fresh], seeded: true }));
+      },
+
+      seedVerbsIfMissing: () => {
+        const s = get();
+        const hasConjugation = s.cards.some((c) => c.conj !== undefined);
+        if (hasConjugation) return;
+        const verbs = makeAllSeedVerbs(Date.now());
+        set({ cards: [...s.cards, ...verbs] });
       },
 
       addCard: (draft) => {
@@ -93,6 +111,28 @@ export const useDeckStore = create<DeckState & DeckActions>()(
           parentId: null,
           isChild: false,
           createdAt: now,
+        };
+        set((s) => ({ cards: [...s.cards, card] }));
+        return id;
+      },
+
+      addVerbCard: (draft) => {
+        const now = Date.now();
+        const id = `verb-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        const card: Card = {
+          id,
+          en: draft.en,
+          it: draft.it,
+          cat: "verbo",
+          rung: 0,
+          due: now,
+          wrongs: 0,
+          reviewed: 0,
+          history: [],
+          parentId: null,
+          isChild: false,
+          createdAt: now,
+          conj: draft.conj,
         };
         set((s) => ({ cards: [...s.cards, card] }));
         return id;

@@ -20,6 +20,7 @@ import { useEscToCoda } from "@/lib/hooks/useEscToCoda";
 export function ClientShell({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const seedIfEmpty = useDeckStore((s) => s.seedIfEmpty);
+  const seedVerbsIfMissing = useDeckStore((s) => s.seedVerbsIfMissing);
 
   const theme = useUIStore((s) => s.theme);
   const carattere = useUIStore((s) => s.carattere);
@@ -29,10 +30,13 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   useAmbientWarmth();
   useEscToCoda();
 
-  // 1. Seed once on first hydration.
+  // 1. Seed once on first hydration. Also backfill the Phase-2 verb cards
+  //    for existing users who hydrated before verb seeds existed.
   useEffect(() => {
-    if (hydrated) seedIfEmpty();
-  }, [hydrated, seedIfEmpty]);
+    if (!hydrated) return;
+    seedIfEmpty();
+    seedVerbsIfMissing();
+  }, [hydrated, seedIfEmpty, seedVerbsIfMissing]);
 
   // 2. Sync data-* attrs whenever UI prefs change.
   useEffect(() => {

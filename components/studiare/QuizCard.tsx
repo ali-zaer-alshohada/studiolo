@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { Card } from "@/lib/srs/types";
 import { useSessionStore } from "@/lib/store/session";
 import { useDeckStore } from "@/lib/store/deck";
 import { gradeAnswer, inferCtx } from "@/lib/srs/quiz";
+import { pickConjugationPrompt, gradeConjugation } from "@/lib/srs/conjugation";
 import { AccentKeys } from "./AccentKeys";
 import { Apparatus } from "./Apparatus";
 
@@ -13,14 +14,18 @@ type QuizCardProps = {
   onFinishedAnswering: () => void;
 };
 
-/** Auto-advance delay after a `corretto` grade, in ms. */
 const AUTO_ADVANCE_MS = 1400;
 
 /**
- * The main quiz card — 2-column critical-edition layout.
- * Three states driven by `data-state`: prompt | corretto | sbagliato.
- * Same DOM, different subtree visibility — so the card "transforms" rather
- * than mounting/unmounting between states.
+ * Quiz card — branches at the top by card type:
+ *   - Verb card with `conj` table → conjugation drill (Phase 2).
+ *     Prompt format: [infinitive] · tense · pronoun → ?
+ *   - Any other card → translation drill. Prompt: [English] → ?
+ *
+ * Both branches share the same 3-state machine (prompt | corretto | sbagliato),
+ * the same input + accent keys, the same Apparatus column, and the same
+ * `gradeCorrect`/`gradeWrong` plumbing. Verb-quiz wrongs use ctx="coniugazione"
+ * so chained children spawn under that bucket.
  */
 export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
   const state = useSessionStore((s) => s.active?.state ?? "prompt");
@@ -35,12 +40,18 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus the input on every prompt-state mount.
+  // Pick a conjugation cell ONCE per card mount (key === card.id) so the
+  // user sees the same prompt across prompt → corretto/sbagliato.
+  const conjugationPrompt = useMemo(
+    () => (card.conj ? pickConjugationPrompt(card) : null),
+    [card.id, card.conj], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const isConjugation = conjugationPrompt !== null;
+
   useEffect(() => {
     if (state === "prompt") inputRef.current?.focus();
   }, [state, card.id]);
 
-  // Auto-advance after correct.
   useEffect(() => {
     if (state !== "corretto") return;
     const t = window.setTimeout(onFinishedAnswering, AUTO_ADVANCE_MS);
@@ -49,14 +60,25 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
 
   function submit() {
     if (state !== "prompt") return;
-    const result = gradeAnswer(card, userInput);
-    if (result.ok) {
-      gradeCorrectStore(card.id);
-      markCorrect();
+    if (isConjugation && conjugationPrompt) {
+      const r = gradeConjugation(conjugationPrompt, userInput);
+      if (r.ok) {
+        gradeCorrectStore(card.id);
+        markCorrect();
+      } else {
+        gradeWrongStore(card.id, r.userInput, r.expected, "coniugazione");
+        markWrong(r.userInput, r.expected);
+      }
     } else {
-      const ctx = inferCtx(result.userInput, result.correct);
-      gradeWrongStore(card.id, result.userInput, result.correct, ctx);
-      markWrong(result.userInput, result.correct);
+      const result = gradeAnswer(card, userInput);
+      if (result.ok) {
+        gradeCorrectStore(card.id);
+        markCorrect();
+      } else {
+        const ctx = inferCtx(result.userInput, result.correct);
+        gradeWrongStore(card.id, result.userInput, result.correct, ctx);
+        markWrong(result.userInput, result.correct);
+      }
     }
   }
 
@@ -66,14 +88,29 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
         <div className="meta-block">
           <span className="pos">{card.cat}</span>
           <span className="sep" aria-hidden />
-          <span>carta · {card.isChild ? "postilla" : "principale"}</span>
+          <span>
+            carta · {card.isChild ? "postilla" : isConjugation ? "coniugazione" : "principale"}
+          </span>
         </div>
 
         {/* PROMPT */}
         {state === "prompt" && (
           <>
-            <div className="quiz-prompt">Traduci · in italiano</div>
-            <h2 className="quiz-question">{card.en}</h2>
+            {isConjugation && conjugationPrompt ? (
+              <>
+                <div className="quiz-prompt">
+                  Coniuga · {conjugationPrompt.tenseLabel} · {conjugationPrompt.pronounLabel}
+                </div>
+                <h2 className="quiz-question">
+                  <em>{card.it}</em>
+                </h2>
+              </>
+            ) : (
+              <>
+                <div className="quiz-prompt">Traduci · in italiano</div>
+                <h2 className="quiz-question">{card.en}</h2>
+              </>
+            )}
 
             <AccentKeys
               onInsert={(ch) => {
@@ -99,7 +136,11 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
                 spellCheck={false}
                 autoCapitalize="none"
                 autoCorrect="off"
-                aria-label={`Traduci ${card.en} in italiano`}
+                aria-label={
+                  isConjugation && conjugationPrompt
+                    ? `Coniuga ${card.it} al ${conjugationPrompt.tenseLabel} per ${conjugationPrompt.pronounLabel}`
+                    : `Traduci ${card.en} in italiano`
+                }
               />
               <span className="submit-hint" aria-hidden>↵</span>
             </div>
@@ -109,7 +150,11 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
         {/* CORRETTO */}
         {state === "corretto" && (
           <div className="corretto-state">
-            <div className="quiz-prompt">{card.en}</div>
+            <div className="quiz-prompt">
+              {isConjugation && conjugationPrompt
+                ? `${card.it} · ${conjugationPrompt.tenseLabel} · ${conjugationPrompt.pronounLabel}`
+                : card.en}
+            </div>
             <p className="answer-line">
               <span className="check" aria-label="Corretto">✓</span>
               <span>{userInput}</span>
@@ -128,7 +173,11 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
         {/* SBAGLIATO */}
         {state === "sbagliato" && (
           <div className="sbagliato-state">
-            <div className="quiz-prompt">{card.en}</div>
+            <div className="quiz-prompt">
+              {isConjugation && conjugationPrompt
+                ? `${card.it} · ${conjugationPrompt.tenseLabel} · ${conjugationPrompt.pronounLabel}`
+                : card.en}
+            </div>
             <p className="wrong-input">
               <span aria-label="Sbagliato">✗</span> {userInput || "(vuoto)"}
             </p>
