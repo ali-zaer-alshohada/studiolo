@@ -32,8 +32,8 @@ export function Concordance() {
 
   return (
     <div className="conc-list">
-      {groups.map((group) => (
-        <details className="letter-group" key={group.letter} open>
+      {groups.map((group, i) => (
+        <details className="letter-group" key={group.letter} open={i === 0}>
           <summary className="letter-head">
             <em>{group.letter}</em>
             <span className="letter-count">· {group.entries.length}</span>

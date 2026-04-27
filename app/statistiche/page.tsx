@@ -9,10 +9,11 @@ import { Concordance } from "@/components/statistiche/Concordance";
  */
 export default function StatistichePage() {
   return (
-    <section>
-      <div className="section-label">
+    <section aria-labelledby="statistiche-heading">
+      <h1 id="statistiche-heading" className="visually-hidden">Statistiche · pagina xi · concordanza</h1>
+      <div className="section-label" aria-hidden>
         <span>Statistiche</span>
-        <span className="rule" aria-hidden />
+        <span className="rule" />
         <span className="pageno">xi · concordanza</span>
       </div>
 

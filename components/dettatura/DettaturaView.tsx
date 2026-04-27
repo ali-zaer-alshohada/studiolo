@@ -131,8 +131,9 @@ export function DettaturaView() {
 
   if (!hydrated) {
     return (
-      <section>
-        <div className="section-label">
+      <section aria-labelledby="dettatura-heading">
+        <h1 id="dettatura-heading" className="visually-hidden">Dettatura · pagina vii · a memoria</h1>
+        <div className="section-label" aria-hidden>
           <span>Dettatura</span>
           <span className="rule" aria-hidden />
           <span className="pageno">vii · a memoria</span>
@@ -143,8 +144,9 @@ export function DettaturaView() {
 
   if (cards.length === 0) {
     return (
-      <section>
-        <div className="section-label">
+      <section aria-labelledby="dettatura-heading">
+        <h1 id="dettatura-heading" className="visually-hidden">Dettatura · pagina vii · a memoria</h1>
+        <div className="section-label" aria-hidden>
           <span>Dettatura</span>
           <span className="rule" aria-hidden />
           <span className="pageno">vii · a memoria</span>
@@ -178,10 +180,11 @@ export function DettaturaView() {
   }
 
   return (
-    <section className="dettatura-page">
-      <div className="section-label">
+    <section className="dettatura-page" aria-labelledby="dettatura-heading">
+      <h1 id="dettatura-heading" className="visually-hidden">Dettatura · pagina vii · a memoria</h1>
+      <div className="section-label" aria-hidden>
         <span>Dettatura</span>
-        <span className="rule" aria-hidden />
+        <span className="rule" />
         <span className="pageno">vii · a memoria</span>
       </div>
 

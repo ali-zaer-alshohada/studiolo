@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useUIStore, type Theme, type Carattere, type Severita, type ErrataMode } from "@/lib/store/ui";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { ChipRow, Chip } from "@/components/primitives";
@@ -36,6 +37,22 @@ export function TweaksPanel() {
   const hydrated = useHydrated();
   const open = useUIStore((s) => s.tweaksOpen);
   const toggle = useUIStore((s) => s.toggleTweaks);
+  const setTweaksOpen = useUIStore((s) => s.setTweaksOpen);
+
+  // When the panel is open, Esc closes it instead of falling through to
+  // the global Esc-to-Coda handler. Capture phase + stopPropagation ensures
+  // we run before the window-level listener.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      setTweaksOpen(false);
+    }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open, setTweaksOpen]);
   const theme = useUIStore((s) => s.theme);
   const carattere = useUIStore((s) => s.carattere);
   const severita = useUIStore((s) => s.severita);
@@ -62,6 +79,14 @@ export function TweaksPanel() {
         data-open={open ? "true" : undefined}
         aria-hidden={!open}
       >
+        <button
+          type="button"
+          className="tweaks-close"
+          onClick={() => setTweaksOpen(false)}
+          aria-label="Chiudi pannello aspetto"
+        >
+          ×
+        </button>
         <h3 className="tweaks-panel-title">Aspetto</h3>
 
         <section className="tweak-group">

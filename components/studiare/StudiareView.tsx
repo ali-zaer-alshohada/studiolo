@@ -41,8 +41,9 @@ export function StudiareView() {
 
   if (!hydrated) {
     return (
-      <section>
-        <div className="section-label">
+      <section aria-labelledby="studiare-heading">
+        <h1 id="studiare-heading" className="visually-hidden">Studiare · pagina iii</h1>
+        <div className="section-label" aria-hidden>
           <span>Studiare</span>
           <span className="rule" aria-hidden />
           <span className="pageno">iii</span>
@@ -54,8 +55,9 @@ export function StudiareView() {
   // No active session AND there were no due cards → empty state.
   if (!active) {
     return (
-      <section>
-        <div className="section-label">
+      <section aria-labelledby="studiare-heading">
+        <h1 id="studiare-heading" className="visually-hidden">Studiare · pagina iii</h1>
+        <div className="section-label" aria-hidden>
           <span>Studiare</span>
           <span className="rule" aria-hidden />
           <span className="pageno">iii · sessione</span>
@@ -71,8 +73,9 @@ export function StudiareView() {
   // Session finished (cursor past end).
   if (active.idx >= active.queue.length) {
     return (
-      <section>
-        <div className="section-label">
+      <section aria-labelledby="studiare-heading">
+        <h1 id="studiare-heading" className="visually-hidden">Studiare · pagina iii</h1>
+        <div className="section-label" aria-hidden>
           <span>Studiare</span>
           <span className="rule" aria-hidden />
           <span className="pageno">iii · finita</span>
@@ -111,8 +114,9 @@ export function StudiareView() {
   }
 
   return (
-    <section>
-      <div className="section-label">
+    <section aria-labelledby="studiare-heading">
+      <h1 id="studiare-heading" className="visually-hidden">Studiare · pagina iii</h1>
+      <div className="section-label" aria-hidden>
         <span>Studiare</span>
         <span className="rule" aria-hidden />
         <span className="pageno">iii · sessione</span>

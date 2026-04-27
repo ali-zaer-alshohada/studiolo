@@ -37,6 +37,7 @@ export function AggiungiView() {
   const [override, setOverride] = useState<Category | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [savedThisSession, setSavedThisSession] = useState(0);
+  const [hasItInput, setHasItInput] = useState(false);
   const feedbackTimer = useRef<number | undefined>(undefined);
 
   const active: Category = override ?? detected ?? DEFAULT_CAT;
@@ -48,6 +49,7 @@ export function AggiungiView() {
 
   function handleItInput(text: string) {
     setDetected(detectCat(text));
+    setHasItInput(text.trim() !== "");
   }
 
   function handleSave() {
@@ -65,6 +67,7 @@ export function AggiungiView() {
     itRef.current?.set("");
     setDetected(null);
     setOverride(null);
+    setHasItInput(false);
     setSavedThisSession((n) => n + 1);
     setFeedback("iscritta");
     scheduleFeedbackFade();
@@ -96,10 +99,11 @@ export function AggiungiView() {
     : [];
 
   return (
-    <section>
-      <div className="section-label">
+    <section aria-labelledby="aggiungi-heading">
+      <h1 id="aggiungi-heading" className="visually-hidden">Aggiungi · pagina v</h1>
+      <div className="section-label" aria-hidden>
         <span>Aggiungi</span>
-        <span className="rule" aria-hidden />
+        <span className="rule" />
         <span className="pageno">v</span>
       </div>
 
@@ -135,6 +139,7 @@ export function AggiungiView() {
             active={active}
             detected={detected}
             isOverride={override !== null && override !== detected}
+            hasInput={hasItInput}
             onChange={(cat) => setOverride(cat)}
           />
         </div>

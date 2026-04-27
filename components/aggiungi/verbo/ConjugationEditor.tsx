@@ -189,7 +189,7 @@ export function ConjugationEditor({
                 <em>{t.label}</em>
               </th>
               {PRONOUNS.map((p) => (
-                <td key={p.v}>
+                <td key={p.v} data-pronoun={p.label}>
                   <input
                     type="text"
                     className="conj-cell"

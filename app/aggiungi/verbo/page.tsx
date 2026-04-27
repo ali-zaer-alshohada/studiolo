@@ -17,10 +17,11 @@ export default function AggiungiVerboPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   return (
-    <section>
-      <div className="section-label">
+    <section aria-labelledby="verbo-heading">
+      <h1 id="verbo-heading" className="visually-hidden">Aggiungi verbo · pagina vi · coniugazione</h1>
+      <div className="section-label" aria-hidden>
         <span>Aggiungi · verbo</span>
-        <span className="rule" aria-hidden />
+        <span className="rule" />
         <span className="pageno">vi · coniugazione</span>
       </div>
 

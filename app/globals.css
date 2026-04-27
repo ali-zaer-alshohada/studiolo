@@ -12,7 +12,7 @@
   --paper:      #efe8d8;
   --charcoal:   #1a1612;
   --ink:        #1a1612;
-  --soft:       #6b6358;
+  --soft:       #5a5246;       /* darkened from #6b6358 → ~4.6:1 contrast vs --bg (was 3.8:1) */
   --hair:       rgba(26, 22, 18, 0.20);
   --hair-faint: rgba(26, 22, 18, 0.08);
   --accent:     #1a3050;       /* navy — the only UI accent */
@@ -24,9 +24,11 @@
   --fg:         var(--ink);
   --muted:      var(--soft);
 
-  /* Carattere axis (M10): two complete serif sets, swapped via --serif. Mono stays shared. */
+  /* Carattere axis: two complete font sets, swapped via --serif. Mono stays shared.
+     antica  = humanist serif (warm, book-printed feel) — current default.
+     moderna = Bauhaus-era geometric sans (machine-age, modernist tract feel). */
   --serif-antica:  'Iowan Old Style', 'Charter', 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, 'Times New Roman', serif;
-  --serif-moderna: 'Bodoni 72', 'Bodoni Linotype', 'Big Caslon', Cambria, Constantia, Georgia, 'Times New Roman', serif;
+  --serif-moderna: 'Futura', 'Avenir Next', 'Avenir', 'Century Gothic', 'Twentieth Century MT', 'ITC Avant Garde Gothic', 'Trebuchet MS', 'Verdana', system-ui, sans-serif;
   --serif:         var(--serif-antica);
   --mono:          ui-monospace, 'SF Mono', Menlo, 'Cascadia Mono', Consolas, monospace;
 }
@@ -1134,6 +1136,139 @@ details[open] > .letter-head { color: var(--fg); }
 }
 @media (prefers-reduced-motion: reduce) {
   .modal-bg { animation: none; }
+}
+
+/* ─────────────────────────────────────────────
+   SEVERITÀ axis — `standard` (default, full chrome) | `sobrio` (stripped)
+   Ported from prototype lines 759–785.
+───────────────────────────────────────────── */
+html[data-severita="sobrio"] body::before { display: none; }
+html[data-severita="sobrio"] .app { padding-left: 56px; padding-right: 56px; }
+html[data-severita="sobrio"] .section-label .pageno,
+html[data-severita="sobrio"] .errata .head span:last-child,
+html[data-severita="sobrio"] .running-head,
+html[data-severita="sobrio"] .colophon,
+html[data-severita="sobrio"] .errata::before,
+html[data-severita="sobrio"] .errata::after { display: none; }
+html[data-severita="sobrio"] .errata {
+  border-top-width: 0.5px; border-bottom-width: 0.5px;
+  margin-left: 0; margin-right: 0; padding: 24px 0 28px;
+}
+html[data-severita="sobrio"] header.chrome {
+  border-top-width: 0.5px; padding: 10px 0 12px; margin-bottom: 32px;
+}
+html[data-severita="sobrio"] .erratum .meta .ctx { display: none; }
+@media (min-width: 700px) {
+  html[data-severita="sobrio"] .app { padding-left: 96px; }
+}
+
+/* ─────────────────────────────────────────────
+   ERRATA stance — `lezione` (gentler, framed as instruction) | `cronaca` (scrolling chronicle, full ledger)
+   Ported from prototype lines 792–838.
+───────────────────────────────────────────── */
+html[data-errata="lezione"] .errata {
+  border-top-width: 0.5px; border-bottom-width: 0.5px;
+  margin-left: 0; margin-right: 0; padding: 24px 0 28px;
+}
+html[data-errata="lezione"] .errata::before,
+html[data-errata="lezione"] .errata::after { display: none; }
+html[data-errata="lezione"] .errata .head .title em { font-size: 14px; }
+html[data-errata="lezione"] .erratum .wrong {
+  font-size: 15px; opacity: 0.55;
+}
+html[data-errata="lezione"] .erratum .corr {
+  font-size: 24px; margin-left: 0;
+}
+html[data-errata="lezione"] .erratum .corr::before { content: ""; }
+html[data-errata="lezione"] .erratum {
+  grid-template-columns: 36px 1fr auto;
+}
+
+html[data-errata="cronaca"] .errata { padding: 28px 16px 32px; }
+html[data-errata="cronaca"] .errata-list {
+  max-height: 360px; overflow-y: auto; gap: 14px;
+  padding-right: 8px;
+  border-left: 0.5px solid var(--hair);
+  padding-left: 24px;
+}
+html[data-errata="cronaca"] .errata-list::-webkit-scrollbar { width: 6px; }
+html[data-errata="cronaca"] .errata-list::-webkit-scrollbar-thumb { background: var(--hair); }
+html[data-errata="cronaca"] .erratum {
+  grid-template-columns: 28px 1fr auto;
+  padding-bottom: 10px;
+  border-bottom: 0.5px dotted var(--hair-faint);
+}
+html[data-errata="cronaca"] .erratum:last-child { border-bottom: none; }
+html[data-errata="cronaca"] .erratum .wrong,
+html[data-errata="cronaca"] .erratum .corr { font-size: 16px; }
+html[data-errata="cronaca"] .erratum .corr {
+  margin-left: 18px; font-size: 16px;
+}
+html[data-errata="cronaca"] .erratum .corr::before {
+  content: "→"; left: -16px; font-size: 14px;
+}
+html[data-errata="cronaca"] .erratum .num {
+  font-size: 11px; padding-top: 3px; color: var(--muted);
+}
+html[data-errata="cronaca"] .erratum .meta { padding-top: 3px; }
+
+/* ─────────────────────────────────────────────
+   POLISH PASS — touch-target bumps, mobile errata, etc.
+───────────────────────────────────────────── */
+
+/* Bigger touch targets on chrome buttons (was 10px / 16.7px). */
+.tweaks-toggle { padding: 14px 18px !important; }
+.alarm-banner button { padding: 12px 16px !important; }
+
+.tweaks-close {
+  position: absolute; top: 12px; right: 12px;
+  background: transparent; border: none; cursor: pointer;
+  font: 22px/1 var(--serif);
+  color: var(--muted);
+  padding: 6px 10px;
+  transition: color 160ms ease;
+}
+.tweaks-close:hover { color: var(--fg); }
+.tweaks-panel { position: fixed; }
+
+/* Mobile errata: tighter font + dropped meta on truly narrow screens. */
+@media (max-width: 480px) {
+  .erratum .wrong, .erratum .corr { font-size: 18px; }
+  .erratum .meta .when { display: none; }
+}
+
+/* Conjugation editor accordion at narrow widths — table → vertical stack. */
+@media (max-width: 700px) {
+  .conj-table, .conj-table thead, .conj-table tbody, .conj-table tr, .conj-table th, .conj-table td {
+    display: block;
+    border: none;
+    width: 100%;
+    text-align: left;
+  }
+  .conj-table thead { display: none; }
+  .conj-table tr {
+    margin-bottom: 18px;
+    padding: 12px 0;
+    border-bottom: 0.5px solid var(--hair);
+  }
+  .conj-table .conj-tense {
+    padding: 0 0 8px !important;
+    font-size: 18px !important;
+  }
+  .conj-table td {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    align-items: baseline;
+    gap: 10px;
+    padding: 4px 0;
+  }
+  .conj-table td::before {
+    content: attr(data-pronoun);
+    font: 9px/1 var(--mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
 }
 
 /* ─────────────────────────────────────────────
