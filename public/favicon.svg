@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#f5f1e8"/>
+  <text
+    x="256" y="350"
+    font-family="'Iowan Old Style','Charter','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif"
+    font-style="italic"
+    font-weight="500"
+    font-size="320"
+    fill="#1a1612"
+    text-anchor="middle"
+    letter-spacing="-4"
+  >s<tspan fill="#8b2920" font-style="normal">.</tspan></text>
+</svg>

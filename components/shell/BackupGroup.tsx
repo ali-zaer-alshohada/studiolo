@@ -7,6 +7,7 @@ import { buildExportEnvelope, exportFilename, triggerDownload } from "@/lib/io/e
 import { parseImport } from "@/lib/io/importJson";
 import type { ImportPreview } from "@/lib/io/types";
 import { ImportPreviewModal } from "./ImportPreviewModal";
+import { useInstallPrompt } from "./InstallPrompt";
 
 const FEEDBACK_FADE_MS = 1800;
 
@@ -19,6 +20,7 @@ export function BackupGroup() {
   const markBackedUp = useDeckStore((s) => s.markBackedUp);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const feedbackTimer = useRef<number | undefined>(undefined);
+  const installHandler = useInstallPrompt();
 
   const [feedback, setFeedback] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -93,8 +95,16 @@ export function BackupGroup() {
           }}
         />
       )}
-      {/* Install button slot — populated by InstallPrompt in Task 14. */}
-      <div id="install-prompt-slot" />
+      {installHandler && (
+        <button
+          type="button"
+          className="backup-btn install-btn"
+          onClick={() => installHandler()}
+          style={{ marginTop: 8, width: "100%" }}
+        >
+          ↗ installa app
+        </button>
+      )}
       <p className="backup-hint">
         carte attuali: <span className="v">{hydrated ? cardCount : "—"}</span>
       </p>

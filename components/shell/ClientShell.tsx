@@ -55,5 +55,15 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener("change", onChange);
   }, [hydrated, theme]);
 
+  // 4. Register service worker (production only — dev bundle staleness is a trap).
+  useEffect(() => {
+    if (!hydrated) return;
+    if (process.env.NODE_ENV !== "production") return;
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker
+      .register("/sw.js")
+      .catch((err) => console.warn("[sw] registration failed", err));
+  }, [hydrated]);
+
   return <>{children}</>;
 }

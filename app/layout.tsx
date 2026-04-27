@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { RunningHead } from "@/components/shell/RunningHead";
 import { ClientShell } from "@/components/shell/ClientShell";
@@ -8,6 +8,20 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "studiolo.",
   description: "Un'edizione critica del tuo italiano",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "studiolo",
+  },
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icon-192.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1a3050",
 };
 
 export default function RootLayout({
