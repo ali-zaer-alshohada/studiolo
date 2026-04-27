@@ -29,7 +29,8 @@ export function StudiareView() {
   useEffect(() => {
     if (!hydrated) return;
     if (active) return;
-    const due = dueToday(cards, Date.now());
+    // Exclude paragraph cards (typing-trainer-only) from the SRS queue.
+    const due = dueToday(cards, Date.now()).filter((c) => c.paragraph === undefined);
     if (due.length === 0) return;
     startSession(shuffle(due).map((c) => c.id));
   }, [hydrated, active, cards, startSession]);

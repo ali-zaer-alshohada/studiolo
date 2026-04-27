@@ -43,6 +43,8 @@ export type DeckActions = {
   addCard: (draft: { en: string; it: string; cat: Card["cat"]; ctx?: string }) => string;
   /** Add a verb card with a conjugation table. Returns the created card's id. */
   addVerbCard: (draft: { en: string; it: string; conj: ConjugationTable }) => string;
+  /** Add a paragraph card for the typing trainer. Returns the created card's id. */
+  addParagraphCard: (draft: { title: string; paragraph: string }) => string;
   /** Wipe everything. Used by the danger button and by tests. */
   resetAll: () => void;
   /** Stamp the last-backup timestamp (called by exportJson). */
@@ -133,6 +135,28 @@ export const useDeckStore = create<DeckState & DeckActions>()(
           isChild: false,
           createdAt: now,
           conj: draft.conj,
+        };
+        set((s) => ({ cards: [...s.cards, card] }));
+        return id;
+      },
+
+      addParagraphCard: (draft) => {
+        const now = Date.now();
+        const id = `para-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        const card: Card = {
+          id,
+          en: draft.title,
+          it: draft.paragraph.slice(0, 60), // first 60 chars as a preview label
+          cat: "altro",
+          rung: 0,
+          due: now + 365 * 86_400_000, // far future — never enters SRS queue
+          wrongs: 0,
+          reviewed: 0,
+          history: [],
+          parentId: null,
+          isChild: false,
+          createdAt: now,
+          paragraph: draft.paragraph,
         };
         set((s) => ({ cards: [...s.cards, card] }));
         return id;
@@ -263,3 +287,7 @@ export function selectDueCount(s: DeckState): number {
 }
 
 export const SEED_TOTAL = SEED_COUNT;
+
+/** Paragraph cards — surfaces only in /dettatura's typing-trainer mode. */
+export const selectParagraphCards = (s: DeckState): Card[] =>
+  s.cards.filter((c) => c.paragraph !== undefined);

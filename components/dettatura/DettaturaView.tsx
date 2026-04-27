@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDeckStore } from "@/lib/store/deck";
+import { useUIStore } from "@/lib/store/ui";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { pickDettaturaCard, gradeDettatura, type DettaturaResult } from "@/lib/srs/dettatura";
 import type { Card } from "@/lib/srs/types";
 import { ContentEditableZone, type ContentEditableHandle } from "@/components/aggiungi/ContentEditableZone";
 import { FlashStage, type DettaturaPhase } from "./FlashStage";
 import { DettaturaFeedback } from "./DettaturaFeedback";
+import { TypingTrainer } from "./TypingTrainer";
+import { ChipRow, Chip } from "@/components/primitives";
 
 const TICK_MS = 80;
 
@@ -29,8 +32,12 @@ export function DettaturaView() {
   const hydrated = useHydrated();
   const router = useRouter();
   const cards = useDeckStore((s) => s.cards);
+  const paragraphs = useMemo(() => cards.filter((c) => c.paragraph !== undefined), [cards]);
   const gradeCorrect = useDeckStore((s) => s.gradeCorrect);
   const gradeWrong = useDeckStore((s) => s.gradeWrong);
+  const dettaturaMode = useUIStore((s) => s.dettaturaMode);
+  const setDettaturaMode = useUIStore((s) => s.setDettaturaMode);
+  const [paragraphIdx, setParagraphIdx] = useState(0);
 
   const [phase, setPhase] = useState<DettaturaPhase>("ready");
   const [duration, setDuration] = useState(3); // seconds
@@ -179,6 +186,8 @@ export function DettaturaView() {
       break;
   }
 
+  const currentParagraph = paragraphs[paragraphIdx % Math.max(paragraphs.length, 1)];
+
   return (
     <section className="dettatura-page" aria-labelledby="dettatura-heading">
       <h1 id="dettatura-heading" className="visually-hidden">Dettatura · pagina vii · a memoria</h1>
@@ -188,50 +197,94 @@ export function DettaturaView() {
         <span className="pageno">vii · a memoria</span>
       </div>
 
-      <FlashStage
-        phase={phase}
-        readout={readout}
-        counter={counter}
-        duration={duration}
-        onDurationChange={setDuration}
-      />
-
-      <div className="dett-input-row">
-        <ContentEditableZone
-          ref={inputRef}
-          ariaLabel="Scrivi la frase a memoria"
-          placeholder="ricomporre la frase a memoria"
-          className={
-            phase === "recall" ? "ruled-zone dett-write" : "ruled-zone dett-write disabled"
-          }
-          onEnter={handleSubmit}
-        />
+      <div className="dett-mode-row">
+        <span className="dett-mode-label">modalità</span>
+        <ChipRow>
+          <Chip
+            active={dettaturaMode === "frase"}
+            onClick={() => setDettaturaMode("frase")}
+          >
+            frase a memoria
+          </Chip>
+          <Chip
+            active={dettaturaMode === "dattilografia"}
+            onClick={() => setDettaturaMode("dattilografia")}
+          >
+            dattilografia
+          </Chip>
+        </ChipRow>
       </div>
 
-      {phase === "feedback" && result && <DettaturaFeedback result={result} />}
+      {dettaturaMode === "frase" ? (
+        <>
+          <FlashStage
+            phase={phase}
+            readout={readout}
+            counter={counter}
+            duration={duration}
+            onDurationChange={setDuration}
+          />
 
-      <div className="dett-controls">
-        {phase === "ready" && (
-          <button type="button" className="avanti-btn" onClick={handleStart} autoFocus>
-            Iniziare la dettatura
-          </button>
-        )}
-        {phase === "show" && (
-          <button type="button" className="avanti-btn ghost" disabled>
-            in lettura…
-          </button>
-        )}
-        {phase === "recall" && (
-          <button type="button" className="avanti-btn" onClick={handleSubmit}>
-            Verificare ↵
-          </button>
-        )}
-        {phase === "feedback" && (
-          <button type="button" className="avanti-btn" onClick={handleRestart} autoFocus>
-            Avanti →
-          </button>
-        )}
-      </div>
+          <div className="dett-input-row">
+            <ContentEditableZone
+              ref={inputRef}
+              ariaLabel="Scrivi la frase a memoria"
+              placeholder="ricomporre la frase a memoria"
+              className={
+                phase === "recall" ? "ruled-zone dett-write" : "ruled-zone dett-write disabled"
+              }
+              onEnter={handleSubmit}
+            />
+          </div>
+
+          {phase === "feedback" && result && <DettaturaFeedback result={result} />}
+
+          <div className="dett-controls">
+            {phase === "ready" && (
+              <button type="button" className="avanti-btn" onClick={handleStart} autoFocus>
+                Iniziare la dettatura
+              </button>
+            )}
+            {phase === "show" && (
+              <button type="button" className="avanti-btn ghost" disabled>
+                in lettura…
+              </button>
+            )}
+            {phase === "recall" && (
+              <button type="button" className="avanti-btn" onClick={handleSubmit}>
+                Verificare ↵
+              </button>
+            )}
+            {phase === "feedback" && (
+              <button type="button" className="avanti-btn" onClick={handleRestart} autoFocus>
+                Avanti →
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        // Dattilografia (typing trainer)
+        paragraphs.length === 0 ? (
+          <p className="empty-line">
+            <em>Nessun paragrafo ancora.</em>{" "}
+            <a href="/aggiungi/paragrafo" style={{ color: "var(--accent)" }}>Aggiungerne uno</a> per cominciare la lezione di dattilografia.
+          </p>
+        ) : currentParagraph ? (
+          <>
+            <div className="dett-paragraph-meta">
+              <span>{currentParagraph.en}</span>
+              <span style={{ color: "var(--muted)" }}>
+                · paragrafo {(paragraphIdx % paragraphs.length) + 1} di {paragraphs.length}
+              </span>
+            </div>
+            <TypingTrainer
+              key={currentParagraph.id}
+              text={currentParagraph.paragraph!}
+              onPickAnother={() => setParagraphIdx((i) => i + 1)}
+            />
+          </>
+        ) : null
+      )}
     </section>
   );
 }

@@ -18,6 +18,7 @@ export type Theme = "giorno" | "notte" | "auto";
 export type Carattere = "antica" | "moderna";
 export type Severita = "standard" | "sobrio";
 export type ErrataMode = "lezione" | "cronaca";
+export type DettaturaMode = "frase" | "dattilografia";
 
 export type UIState = {
   theme: Theme;
@@ -27,6 +28,8 @@ export type UIState = {
   tweaksOpen: boolean;
   /** Filter chip selection on Coda. Local but persisted so Esc-to-Coda restores it. */
   codaFilter: "tutte" | "sostantivo" | "verbo" | "pronome" | "deboli";
+  /** Dettatura sub-mode. `frase` = flash-then-write (Option A); `dattilografia` = typing trainer (Option B). */
+  dettaturaMode: DettaturaMode;
 };
 
 export type UIActions = {
@@ -35,6 +38,7 @@ export type UIActions = {
   setSeverita: (s: Severita) => void;
   setErrata: (e: ErrataMode) => void;
   setCodaFilter: (f: UIState["codaFilter"]) => void;
+  setDettaturaMode: (m: DettaturaMode) => void;
   toggleTweaks: () => void;
   setTweaksOpen: (open: boolean) => void;
   resetUI: () => void;
@@ -47,6 +51,7 @@ const initialUIState: UIState = {
   errata: "lezione",
   tweaksOpen: false,
   codaFilter: "tutte",
+  dettaturaMode: "frase",
 };
 
 export const useUIStore = create<UIState & UIActions>()(
@@ -58,6 +63,7 @@ export const useUIStore = create<UIState & UIActions>()(
       setSeverita: (severita) => set({ severita }),
       setErrata: (errata) => set({ errata }),
       setCodaFilter: (codaFilter) => set({ codaFilter }),
+      setDettaturaMode: (dettaturaMode) => set({ dettaturaMode }),
       toggleTweaks: () => set((s) => ({ tweaksOpen: !s.tweaksOpen })),
       setTweaksOpen: (tweaksOpen) => set({ tweaksOpen }),
       resetUI: () => set({ ...initialUIState }),
@@ -80,6 +86,7 @@ export const useUIStore = create<UIState & UIActions>()(
         severita: s.severita,
         errata: s.errata,
         codaFilter: s.codaFilter,
+        dettaturaMode: s.dettaturaMode,
       }),
     },
   ),

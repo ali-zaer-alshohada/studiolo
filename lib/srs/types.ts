@@ -52,6 +52,9 @@ export type Card = {
   createdAt: number;
   /** Phase-2 conjugation tables. Optional and backwards-compatible — Phase-1 cards have no `conj`. */
   conj?: ConjugationTable;
+  /** Phase-3 paragraph for the typing trainer (Dettatura Option B). Excluded from
+   * Studiare's normal SRS queue; surfaces only in /dettatura's typing mode. */
+  paragraph?: string;
 };
 
 export type ErrorEvent = {

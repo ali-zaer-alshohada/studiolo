@@ -151,6 +151,9 @@ export function AggiungiView() {
           <a href="/aggiungi/verbo" className="avanti-btn ghost" style={{ textDecoration: "none", display: "inline-block" }}>
             verbo con coniugazione →
           </a>
+          <a href="/aggiungi/paragrafo" className="avanti-btn ghost" style={{ textDecoration: "none", display: "inline-block" }}>
+            paragrafo per dattilografia →
+          </a>
           {savedThisSession > 0 && (
             <span className="aggiungi-feedback">
               {feedback === "iscritta"

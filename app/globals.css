@@ -1379,3 +1379,178 @@ html[data-errata="cronaca"] .erratum .meta { padding-top: 3px; }
   .conj-table { font-size: 12px; }
   .conj-cell { font-size: 12px; padding: 3px 4px; }
 }
+
+/* ─────────────────────────────────────────────
+   DETTATURA · DATTILOGRAFIA — typing trainer (Phase 3)
+───────────────────────────────────────────── */
+
+.dett-mode-row {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 28px;
+}
+.dett-mode-label {
+  font: 10px/1 var(--mono);
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted);
+}
+
+.typing-trainer {
+  position: relative;
+  margin-bottom: 32px;
+}
+.typing-progress {
+  position: relative;
+  height: 2px; background: var(--hair-faint);
+  margin-bottom: 28px;
+}
+.typing-progress .fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--accent);
+  transition: width 200ms cubic-bezier(.4, 0, .2, 1);
+}
+
+.typing-stats {
+  display: flex; gap: 28px; flex-wrap: wrap;
+  font: 10px/1 var(--mono);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+.typing-stats em.v {
+  font: italic 600 18px/1 var(--serif);
+  text-transform: none; letter-spacing: 0;
+  color: var(--fg);
+  margin: 0 4px;
+  font-feature-settings: "tnum";
+}
+
+.dett-paragraph-meta {
+  font: 10px/1 var(--mono);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--fg);
+  margin-bottom: 16px;
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+
+.lesson-text {
+  font: 22px/1.7 var(--mono);
+  margin: 0 0 32px;
+  padding: 24px 0;
+  border-top: 0.5px solid var(--hair);
+  border-bottom: 0.5px solid var(--hair);
+  letter-spacing: 0.02em;
+  word-break: break-word;
+}
+.lesson-text .letter {
+  color: var(--muted);
+  transition: color 120ms ease, background 120ms ease;
+  position: relative;
+  display: inline;
+  white-space: pre-wrap;
+}
+.lesson-text .letter.is-right {
+  color: var(--accent);
+}
+.lesson-text .letter.is-wrong {
+  color: var(--alarm);
+  background: color-mix(in srgb, var(--alarm) 10%, transparent);
+  animation: typing-shake 250ms ease;
+}
+.lesson-text .letter.is-active {
+  border-bottom: 2px solid var(--accent);
+  color: var(--fg);
+}
+.lesson-text .letter.is-right.is-active,
+.lesson-text .letter.is-wrong.is-active {
+  border-bottom: 2px solid var(--accent);
+}
+@keyframes typing-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-text .letter.is-wrong { animation: none; }
+}
+
+.onscreen-keyboard {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  margin: 16px 0 24px;
+  user-select: none;
+}
+.kb-row { display: flex; gap: 6px; }
+.kb-row-2 { padding-left: 14px; }
+.kb-row-3 { padding-left: 28px; }
+.key {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 32px;
+  padding: 0 8px;
+  border: 0.5px solid var(--hair);
+  font: 12px/1 var(--mono);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted);
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+.key.is-next {
+  color: var(--bg); background: var(--accent); border-color: var(--accent);
+}
+.key.key-space { min-width: 200px; }
+
+.typing-end {
+  margin: 32px 0;
+  padding: 24px 0;
+  border-top: 2px solid var(--fg);
+  border-bottom: 2px solid var(--fg);
+}
+.typing-end-title {
+  font: italic 600 28px/1.2 var(--serif);
+  color: var(--fg);
+  margin: 0 0 12px;
+}
+.typing-end-stats {
+  font: 17px/1.5 var(--serif);
+  color: var(--muted);
+  margin: 0 0 24px;
+}
+.typing-end-stats em.v {
+  font-style: italic; color: var(--accent);
+  font-weight: 600;
+  font-feature-settings: "tnum";
+}
+.typing-end-actions {
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+  .lesson-text { font-size: 18px; padding: 16px 0; }
+  .key { min-width: 26px; height: 28px; font-size: 11px; padding: 0 6px; }
+  .key.key-space { min-width: 140px; }
+}
+
+/* ─── paragrafo entry page ─── */
+.paragrafo-page { max-width: 720px; margin: 0 auto; }
+.paragrafo-title {
+  width: 100%;
+  font: italic 22px/1.4 var(--serif);
+  background: transparent;
+  border: none; outline: none;
+  border-bottom: 1.5px solid var(--hair);
+  padding: 8px 0;
+  color: var(--fg);
+  caret-color: var(--accent);
+  transition: border-color 200ms ease;
+}
+.paragrafo-title:focus { border-color: var(--fg); }
+.paragrafo-textarea {
+  width: 100%;
+  font: 18px/1.7 var(--serif);
+  background: transparent;
+  border: 0.5px solid var(--hair);
+  outline: none;
+  padding: 14px 16px;
+  color: var(--fg);
+  caret-color: var(--accent);
+  resize: vertical;
+  min-height: 200px;
+  transition: border-color 200ms ease;
+}
+.paragrafo-textarea:focus { border-color: var(--fg); }
