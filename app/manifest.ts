@@ -1,5 +1,9 @@
 import type { MetadataRoute } from "next";
 
+// Required for static export (`output: 'export'`) — Next 16 won't pre-render
+// the manifest route otherwise.
+export const dynamic = "force-static";
+
 /**
  * PWA manifest. Next 16 serves this as `/manifest.webmanifest` automatically.
  */
