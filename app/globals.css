@@ -1034,3 +1034,97 @@ details[open] > .letter-head { color: var(--fg); }
   color: var(--muted);
   margin-bottom: 8px;
 }
+
+/* ─── backup group (M10) ─── */
+.backup-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.backup-btn {
+  flex: 1 1 auto;
+  background: transparent; border: 0.5px solid var(--hair);
+  color: var(--fg); cursor: pointer;
+  font: 11px/1 var(--mono);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 10px 14px;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.backup-btn:hover {
+  border-color: var(--fg);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.backup-btn:disabled { opacity: 0.5; cursor: default; }
+.backup-feedback {
+  font: italic 13px/1.4 var(--serif);
+  color: var(--accent); margin: 8px 0 0;
+}
+.backup-feedback.error { color: var(--alarm); }
+.backup-hint {
+  font: 10px/1 var(--mono);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted);
+  margin: 12px 0 0;
+}
+.backup-hint .v { color: var(--fg); font-feature-settings: "tnum"; }
+
+/* ─── modal (M10) ─── */
+.modal-bg {
+  position: fixed; inset: 0; z-index: 100;
+  background: color-mix(in srgb, var(--charcoal) 60%, transparent);
+  display: none;
+  align-items: flex-start; justify-content: center;
+  padding: 80px 24px;
+  animation: fadein 200ms ease;
+}
+.modal-bg[data-open="true"] { display: flex; }
+.modal {
+  background: var(--bg);
+  border: 0.5px solid var(--fg);
+  max-width: 520px; width: 100%;
+  padding: 36px 40px;
+}
+.modal-title {
+  font: italic 600 26px/1 var(--serif);
+  color: var(--fg);
+  margin: 0 0 18px;
+}
+.modal-title em {
+  font-family: var(--serif);
+  margin-right: 6px;
+}
+.modal-summary {
+  font: 17px/1.6 var(--serif);
+  color: var(--fg);
+  margin: 0 0 16px;
+}
+.modal-summary .v {
+  font-weight: 600;
+  font-feature-settings: "tnum";
+}
+.modal-summary em {
+  font-style: italic;
+  color: var(--muted);
+}
+.modal-question {
+  font: 10px/1 var(--mono);
+  letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--muted);
+  margin: 24px 0 12px;
+}
+.modal-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+.modal-actions .avanti-btn { margin-top: 0; }
+.modal-hint {
+  font: italic 13px/1.5 var(--serif);
+  color: var(--muted);
+  margin: 0;
+}
+.modal-hint em { color: var(--fg); font-style: italic; font-weight: 500; }
+@keyframes fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-bg { animation: none; }
+}

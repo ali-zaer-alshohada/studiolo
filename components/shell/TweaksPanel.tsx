@@ -3,6 +3,7 @@
 import { useUIStore, type Theme, type Voice, type Severita, type ErrataMode } from "@/lib/store/ui";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { ChipRow, Chip } from "@/components/primitives";
+import { BackupGroup } from "./BackupGroup";
 
 const THEMES: ReadonlyArray<{ v: Theme; label: string }> = [
   { v: "giorno", label: "giorno" },
@@ -122,6 +123,8 @@ export function TweaksPanel() {
             ))}
           </ChipRow>
         </section>
+
+        <BackupGroup />
       </aside>
     </>
   );
