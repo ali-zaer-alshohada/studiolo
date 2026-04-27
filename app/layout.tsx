@@ -31,7 +31,7 @@ export default function RootLayout({
     <html
       lang="it"
       data-theme="light"
-      data-voice="manoscritto"
+      data-carattere="antica"
       data-severita="sobrio"
       data-errata="lezione"
     >

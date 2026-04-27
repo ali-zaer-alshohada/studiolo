@@ -4,24 +4,24 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 /**
- * UI / Tweaks state — never exported via JSON backup. Persisted as `studiolo.ui.v1`.
+ * UI / Tweaks state — never exported via JSON backup. Persisted as `studiolo.ui.v1`
+ * (key kept for migration; version bumped to 2).
  *
- * Defaults match the prototype's TWEAK_DEFAULTS verbatim:
- *   voice: "manoscritto" · severita: "sobrio" · errata: "lezione"
- * (The README claims "tipografo" is the voice default — README is wrong.)
+ * Defaults: theme=giorno · carattere=antica · severita=sobrio · errata=lezione.
  *
- * Theme uses Italian-facing values (`giorno` / `notte` / `auto`) and is
- * translated to `data-theme="light"|"dark"` on apply.
+ * v1 → v2 migration drops the legacy `voice` field (which never had visible effect)
+ * and seeds `carattere: 'antica'`. The carattere axis swaps `--serif` between two
+ * complete font sets (antica = humanist Iowan/Palatino; moderna = Bodoni-style).
  */
 
 export type Theme = "giorno" | "notte" | "auto";
-export type Voice = "tipografo" | "manoscritto";
+export type Carattere = "antica" | "moderna";
 export type Severita = "standard" | "sobrio";
 export type ErrataMode = "lezione" | "cronaca";
 
 export type UIState = {
   theme: Theme;
-  voice: Voice;
+  carattere: Carattere;
   severita: Severita;
   errata: ErrataMode;
   tweaksOpen: boolean;
@@ -31,7 +31,7 @@ export type UIState = {
 
 export type UIActions = {
   setTheme: (t: Theme) => void;
-  setVoice: (v: Voice) => void;
+  setCarattere: (c: Carattere) => void;
   setSeverita: (s: Severita) => void;
   setErrata: (e: ErrataMode) => void;
   setCodaFilter: (f: UIState["codaFilter"]) => void;
@@ -42,7 +42,7 @@ export type UIActions = {
 
 const initialUIState: UIState = {
   theme: "giorno",
-  voice: "manoscritto",
+  carattere: "antica",
   severita: "sobrio",
   errata: "lezione",
   tweaksOpen: false,
@@ -54,7 +54,7 @@ export const useUIStore = create<UIState & UIActions>()(
     (set) => ({
       ...initialUIState,
       setTheme: (theme) => set({ theme }),
-      setVoice: (voice) => set({ voice }),
+      setCarattere: (carattere) => set({ carattere }),
       setSeverita: (severita) => set({ severita }),
       setErrata: (errata) => set({ errata }),
       setCodaFilter: (codaFilter) => set({ codaFilter }),
@@ -64,29 +64,30 @@ export const useUIStore = create<UIState & UIActions>()(
     }),
     {
       name: "studiolo.ui.v1",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
+      migrate: (persisted: unknown, fromVersion: number) => {
+        if (fromVersion < 2 && typeof persisted === "object" && persisted !== null) {
+          const p = persisted as Record<string, unknown>;
+          delete p.voice;
+          if (typeof p.carattere !== "string") p.carattere = "antica";
+        }
+        return persisted as UIState & UIActions;
+      },
       partialize: (s) => ({
         theme: s.theme,
-        voice: s.voice,
+        carattere: s.carattere,
         severita: s.severita,
         errata: s.errata,
         codaFilter: s.codaFilter,
-        // tweaksOpen is intentionally NOT persisted — fresh sessions start closed.
       }),
     },
   ),
 );
 
-/**
- * Resolve the user-facing theme to the actual `data-theme` value, accounting
- * for `auto` mode by reading `prefers-color-scheme`.
- *
- * Pure for the non-auto cases; `auto` requires a window — call only client-side.
- */
 export function resolveTheme(theme: Theme): "light" | "dark" {
   if (theme === "giorno") return "light";
   if (theme === "notte") return "dark";
-  if (typeof window === "undefined") return "light"; // SSR fallback
+  if (typeof window === "undefined") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useUIStore, type Theme, type Voice, type Severita, type ErrataMode } from "@/lib/store/ui";
+import { useUIStore, type Theme, type Carattere, type Severita, type ErrataMode } from "@/lib/store/ui";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { ChipRow, Chip } from "@/components/primitives";
 import { BackupGroup } from "./BackupGroup";
@@ -11,9 +11,9 @@ const THEMES: ReadonlyArray<{ v: Theme; label: string }> = [
   { v: "auto", label: "auto" },
 ];
 
-const VOICES: ReadonlyArray<{ v: Voice; label: string }> = [
-  { v: "tipografo", label: "tipografo" },
-  { v: "manoscritto", label: "manoscritto" },
+const CARATTERI: ReadonlyArray<{ v: Carattere; label: string }> = [
+  { v: "antica", label: "antica" },
+  { v: "moderna", label: "moderna" },
 ];
 
 const SEVERITAS: ReadonlyArray<{ v: Severita; label: string }> = [
@@ -37,11 +37,11 @@ export function TweaksPanel() {
   const open = useUIStore((s) => s.tweaksOpen);
   const toggle = useUIStore((s) => s.toggleTweaks);
   const theme = useUIStore((s) => s.theme);
-  const voice = useUIStore((s) => s.voice);
+  const carattere = useUIStore((s) => s.carattere);
   const severita = useUIStore((s) => s.severita);
   const errata = useUIStore((s) => s.errata);
   const setTheme = useUIStore((s) => s.setTheme);
-  const setVoice = useUIStore((s) => s.setVoice);
+  const setCarattere = useUIStore((s) => s.setCarattere);
   const setSeverita = useUIStore((s) => s.setSeverita);
   const setErrata = useUIStore((s) => s.setErrata);
 
@@ -80,13 +80,13 @@ export function TweaksPanel() {
         </section>
 
         <section className="tweak-group">
-          <div className="tweak-label">voce</div>
+          <div className="tweak-label">carattere</div>
           <ChipRow>
-            {VOICES.map((o) => (
+            {CARATTERI.map((o) => (
               <Chip
                 key={o.v}
-                active={hydrated && voice === o.v}
-                onClick={() => setVoice(o.v)}
+                active={hydrated && carattere === o.v}
+                onClick={() => setCarattere(o.v)}
               >
                 {o.label}
               </Chip>

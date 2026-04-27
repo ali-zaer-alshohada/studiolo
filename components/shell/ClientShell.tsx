@@ -22,7 +22,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const seedIfEmpty = useDeckStore((s) => s.seedIfEmpty);
 
   const theme = useUIStore((s) => s.theme);
-  const voice = useUIStore((s) => s.voice);
+  const carattere = useUIStore((s) => s.carattere);
   const severita = useUIStore((s) => s.severita);
   const errata = useUIStore((s) => s.errata);
 
@@ -39,10 +39,10 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
     const root = document.documentElement;
     root.dataset.theme = resolveTheme(theme);
-    root.dataset.voice = voice;
+    root.dataset.carattere = carattere;
     root.dataset.severita = severita;
     root.dataset.errata = errata;
-  }, [hydrated, theme, voice, severita, errata]);
+  }, [hydrated, theme, carattere, severita, errata]);
 
   // 3. Auto-mode: re-resolve when the OS preference changes.
   useEffect(() => {
