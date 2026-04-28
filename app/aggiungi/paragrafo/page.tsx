@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDeckStore } from "@/lib/store/deck";
+import { useUIStore } from "@/lib/store/ui";
 
 /**
  * Aggiungi · paragrafo — page viii.
@@ -13,6 +14,7 @@ import { useDeckStore } from "@/lib/store/deck";
 export default function AggiungiParagrafoPage() {
   const router = useRouter();
   const addParagraphCard = useDeckStore((s) => s.addParagraphCard);
+  const setDettaturaMode = useUIStore((s) => s.setDettaturaMode);
   const [title, setTitle] = useState("");
   const [paragraph, setParagraph] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -21,8 +23,13 @@ export default function AggiungiParagrafoPage() {
   const charCount = paragraph.length;
 
   function handleSave() {
-    if (!title.trim() || !paragraph.trim()) return;
-    addParagraphCard({ title: title.trim(), paragraph: paragraph.trim() });
+    if (!paragraph.trim()) return;
+    // Auto-generate a title from the paragraph's first words if the user
+    // didn't bother filling it in.
+    const finalTitle =
+      title.trim() || paragraph.trim().split(/\s+/).slice(0, 5).join(" ") + "…";
+    addParagraphCard({ title: finalTitle, paragraph: paragraph.trim() });
+    setDettaturaMode("dattilografia");
     setFeedback(`iscritto · ${wordCount} parole`);
     window.setTimeout(() => router.push("/dettatura"), 700);
   }
@@ -75,7 +82,7 @@ export default function AggiungiParagrafoPage() {
             type="button"
             className="avanti-btn"
             onClick={handleSave}
-            disabled={!title.trim() || !paragraph.trim() || wordCount < 5}
+            disabled={!paragraph.trim()}
           >
             Iscrivere ↵
           </button>
@@ -83,6 +90,11 @@ export default function AggiungiParagrafoPage() {
             ← Aggiungi
           </a>
           {feedback && <span className="aggiungi-feedback">{feedback}</span>}
+          {!feedback && !paragraph.trim() && (
+            <span className="aggiungi-feedback" style={{ color: "var(--muted)" }}>
+              · scrivi un testo per abilitare
+            </span>
+          )}
         </div>
       </div>
     </section>

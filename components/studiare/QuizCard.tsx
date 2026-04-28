@@ -6,6 +6,7 @@ import { useSessionStore } from "@/lib/store/session";
 import { useDeckStore } from "@/lib/store/deck";
 import { gradeAnswer, inferCtx } from "@/lib/srs/quiz";
 import { pickConjugationPrompt, gradeConjugation } from "@/lib/srs/conjugation";
+import { inferAuxiliary, userUsedWrongAuxiliary } from "@/lib/italian/auxiliary";
 import { AccentKeys } from "./AccentKeys";
 import { Apparatus } from "./Apparatus";
 
@@ -184,6 +185,20 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
             <p className="correction">
               <em>vedi:</em> {correctOnFile}
             </p>
+            {isConjugation &&
+              conjugationPrompt?.tense === "passato_prossimo" &&
+              (() => {
+                const aux = inferAuxiliary(card.it);
+                if (!userUsedWrongAuxiliary(userInput, aux)) return null;
+                return (
+                  <p className="aux-tip">
+                    <em>ricorda:</em> <strong>{card.it}</strong> prende{" "}
+                    <em className="aux-name">{aux}</em>
+                    {" · "}
+                    <span className="aux-form">{correctOnFile}</span>
+                  </p>
+                );
+              })()}
             <button
               type="button"
               className="avanti-btn"

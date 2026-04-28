@@ -9,7 +9,6 @@ import { TocRow } from "@/components/primitives";
 export function Toc() {
   return (
     <nav className="toc" aria-label="Indice">
-      <div className="toc-label">Indice</div>
       <TocRow marker={1} label="Studiare le carte di oggi" href="/studiare" />
       <TocRow marker={2} label="Dettatura · sentire e scrivere" href="/dettatura" />
       <TocRow marker={3} label="Aggiungere una carta nuova" href="/aggiungi" />

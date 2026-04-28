@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDeckStore } from "@/lib/store/deck";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { detectCat } from "@/lib/text/detectCat";
+import { suggestArticle } from "@/lib/italian/articles";
 import type { Category, Card } from "@/lib/srs/types";
 import { ContentEditableZone, type ContentEditableHandle } from "./ContentEditableZone";
 import { CategoryChips } from "./CategoryChips";
+
+/** Strip a leading Italian article from a string so we can suggest a fresh one. */
+const ARTICLE_PREFIX_RE = /^(il|lo|la|l['’]|i|gli|le|un|uno|una|un['’])\s+/i;
 
 const DEFAULT_CAT: Category = "altro";
 const FEEDBACK_FADE_MS = 1800;
@@ -38,9 +42,20 @@ export function AggiungiView() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [savedThisSession, setSavedThisSession] = useState(0);
   const [hasItInput, setHasItInput] = useState(false);
+  const [itText, setItText] = useState("");
   const feedbackTimer = useRef<number | undefined>(undefined);
 
   const active: Category = override ?? detected ?? DEFAULT_CAT;
+
+  // Article suggestion — only for nouns, only when there's text. Strips any
+  // article the user already typed so the hint reflects the actual head noun.
+  const articleHint = useMemo(() => {
+    if (active !== "sostantivo") return null;
+    const stripped = itText.replace(ARTICLE_PREFIX_RE, "").trim();
+    if (stripped === "") return null;
+    const head = stripped.split(/\s+/)[0] ?? "";
+    return suggestArticle(head);
+  }, [itText, active]);
 
   // Focus the EN zone on first paint after hydration.
   useEffect(() => {
@@ -50,6 +65,7 @@ export function AggiungiView() {
   function handleItInput(text: string) {
     setDetected(detectCat(text));
     setHasItInput(text.trim() !== "");
+    setItText(text);
   }
 
   function handleSave() {
@@ -68,6 +84,7 @@ export function AggiungiView() {
     setDetected(null);
     setOverride(null);
     setHasItInput(false);
+    setItText("");
     setSavedThisSession((n) => n + 1);
     setFeedback("iscritta");
     scheduleFeedbackFade();
@@ -132,6 +149,19 @@ export function AggiungiView() {
             onEnter={handleSave}
             onCmdEnter={handleSave}
           />
+          {articleHint && (
+            <p className="article-hint" aria-live="polite">
+              suggerimento ·{" "}
+              <em className="ah-art">{articleHint.definite}</em>
+              {" · "}
+              <span className="ah-gender">
+                {articleHint.gender === "m" ? "maschile" : "femminile"}
+              </span>
+              {articleHint.confidence === "low" && (
+                <span className="ah-uncertain"> ?</span>
+              )}
+            </p>
+          )}
         </div>
 
         <div className="aggiungi-block">

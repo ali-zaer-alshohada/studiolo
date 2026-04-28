@@ -1,6 +1,5 @@
 import { AlarmBanner } from "@/components/coda/AlarmBanner";
 import { ErrataHero } from "@/components/coda/ErrataHero";
-import { DueLine } from "@/components/coda/DueLine";
 import { Toc } from "@/components/coda/Toc";
 import { Filters } from "@/components/coda/Filters";
 import { Colophon } from "@/components/coda/Colophon";
@@ -12,10 +11,9 @@ import { Colophon } from "@/components/coda/Colophon";
  *   1. Section label
  *   2. (Conditional) AlarmBanner — only when backup is overdue and there are cards
  *   3. ErrataHero — last 3 errors, framed by heavy black rules. The hero.
- *   4. DueLine — count + streak, deliberately demoted below the errata
- *   5. Toc (Indice) — links to Studiare/Dettatura/Aggiungi/Statistiche
- *   6. Filters — 5 chips: Tutte / Sostantivi / Verbi / Pronomi / Deboli
- *   7. Colophon — tot · oggi · serie · esattezza · 7g
+ *   4. Toc (Indice) — links to Studiare/Dettatura/Aggiungi/Statistiche
+ *   5. Filters — 5 chips: Tutte / Sostantivi / Verbi / Pronomi / Deboli
+ *   6. Colophon — tot · oggi · serie · esattezza · 7g
  *
  * The order is the design's argument. Do not reorder.
  */
@@ -31,7 +29,6 @@ export default function CodaPage() {
 
       <AlarmBanner />
       <ErrataHero />
-      <DueLine />
       <Toc />
       <Filters />
       <Colophon />
