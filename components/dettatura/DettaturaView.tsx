@@ -37,6 +37,19 @@ export function DettaturaView() {
   const gradeWrong = useDeckStore((s) => s.gradeWrong);
   const dettaturaMode = useUIStore((s) => s.dettaturaMode);
   const setDettaturaMode = useUIStore((s) => s.setDettaturaMode);
+  // Shuffled paragraph order, regenerated whenever the deck's paragraph count changes.
+  // We index INTO this shuffled order so each "Cambia testo" advances pseudo-randomly.
+  const shuffledOrder = useMemo(() => {
+    const indices = paragraphs.map((_, i) => i);
+    // Fisher-Yates with Math.random — fresh order per session/deck change.
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = indices[i]!;
+      indices[i] = indices[j]!;
+      indices[j] = tmp;
+    }
+    return indices;
+  }, [paragraphs.length]);
   const [paragraphIdx, setParagraphIdx] = useState(0);
 
   const [phase, setPhase] = useState<DettaturaPhase>("ready");
@@ -186,7 +199,11 @@ export function DettaturaView() {
       break;
   }
 
-  const currentParagraph = paragraphs[paragraphIdx % Math.max(paragraphs.length, 1)];
+  // Pull from the shuffled order so paragraphs surface pseudo-randomly.
+  const currentParagraphIdx =
+    shuffledOrder.length > 0 ? shuffledOrder[paragraphIdx % shuffledOrder.length] : undefined;
+  const currentParagraph =
+    currentParagraphIdx !== undefined ? paragraphs[currentParagraphIdx] : undefined;
 
   return (
     <section className="dettatura-page" aria-labelledby="dettatura-heading">

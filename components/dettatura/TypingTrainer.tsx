@@ -33,15 +33,16 @@ export function TypingTrainer({ text, onPickAnother }: Props) {
     setState(initTypingState(text));
   }, [text]);
 
-  // Tick once per second to refresh live WPM/time displays. Sync immediately
-  // when startedAt is stamped (avoids negative elapsed because `now` was set
-  // on mount, before the first keystroke ever stamped startedAt).
+  // Tick once per second to refresh live WPM/time displays. Stops when
+  // finished — clock freezes at the final time, doesn't keep running.
+  const finished = isFinished(state);
   useEffect(() => {
     if (state.startedAt === null) return;
-    setNow(Date.now());
+    setNow(Date.now()); // sync on every transition
+    if (finished) return; // freeze the clock at the moment of finishing
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, [state.startedAt]);
+  }, [state.startedAt, finished]);
 
   // Global keydown listener — only active while this component is mounted.
   useEffect(() => {
@@ -68,7 +69,6 @@ export function TypingTrainer({ text, onPickAnother }: Props) {
   const elapsedSec =
     state.startedAt === null ? 0 : Math.max(0, Math.floor((now - state.startedAt) / 1000));
   const progress = (state.index / state.text.length) * 100;
-  const finished = isFinished(state);
 
   // Compute the next-expected key for the on-screen keyboard highlight.
   const nextChar = state.text[state.index]?.toLowerCase() ?? null;
