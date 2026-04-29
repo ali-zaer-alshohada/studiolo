@@ -2,10 +2,13 @@ import type { Card, Tense, Pronoun, ConjugationTable } from "./types";
 import { normalize } from "@/lib/text/normalize";
 
 const TENSE_LABEL_IT: Record<Tense, string> = {
+  infinito: "infinito",
   presente: "presente",
   passato_prossimo: "passato prossimo",
   imperfetto: "imperfetto",
   futuro_semplice: "futuro semplice",
+  condizionale_presente: "condizionale presente",
+  presente_progressivo: "presente progressivo",
 };
 
 const PRONOUN_LABEL_IT: Record<Pronoun, string> = {
@@ -17,6 +20,57 @@ const PRONOUN_LABEL_IT: Record<Pronoun, string> = {
   loro: "loro",
 };
 
+/**
+ * English macro per (tense, pronoun) — a quiet hint of what form is being
+ * asked. Doesn't try to perfectly conjugate the verb; uses generic markers
+ * like "did" or "would do" so the user can map their English mental model
+ * to the Italian form. Pattern: replaces nothing in card.en, just describes
+ * the slot being tested.
+ *
+ * Reading C of the verb-chart redesign — pure label, no per-verb data.
+ */
+const ENGLISH_TENSE_HINT: Record<Tense, string> = {
+  infinito: "to {verb}",
+  presente: "{pron} {verb}",
+  passato_prossimo: "{pron} have {verb}-ed / {pron} did",
+  imperfetto: "{pron} was {verb}-ing / used to",
+  futuro_semplice: "{pron} will {verb}",
+  condizionale_presente: "{pron} would {verb} / might",
+  presente_progressivo: "{pron} {be} {verb}-ing",
+};
+
+const ENGLISH_PRONOUN: Record<Pronoun, string> = {
+  io: "I",
+  tu: "you",
+  lui: "he / she",
+  noi: "we",
+  voi: "you (pl)",
+  loro: "they",
+};
+
+const ENGLISH_BE: Record<Pronoun, string> = {
+  io: "am",
+  tu: "are",
+  lui: "is",
+  noi: "are",
+  voi: "are",
+  loro: "are",
+};
+
+/** Strip a leading "to " from card.en to get the bare English verb. */
+function bareEnglishVerb(en: string): string {
+  return en.replace(/^to\s+/i, "").trim();
+}
+
+/** Build the English macro hint for a (tense, pronoun, card.en) triple. */
+export function englishHint(tense: Tense, pronoun: Pronoun, en: string): string {
+  const verb = bareEnglishVerb(en);
+  return ENGLISH_TENSE_HINT[tense]
+    .replace("{pron}", ENGLISH_PRONOUN[pronoun])
+    .replace("{be}", ENGLISH_BE[pronoun])
+    .replace("{verb}", verb);
+}
+
 export type ConjugationPrompt = {
   /** The card the prompt belongs to. */
   card: Card;
@@ -26,6 +80,8 @@ export type ConjugationPrompt = {
   tenseLabel: string;
   /** Italian label like "io", "lui / lei". */
   pronounLabel: string;
+  /** Quiet English macro: "I will {verb}", "to {verb}", etc. Optional hint. */
+  englishLabel: string;
   /** The expected conjugated form (e.g., "andiamo"). */
   expected: string;
 };
@@ -70,6 +126,7 @@ export function pickConjugationPrompt(
     pronoun: cell.pronoun,
     tenseLabel: TENSE_LABEL_IT[cell.tense],
     pronounLabel: PRONOUN_LABEL_IT[cell.pronoun],
+    englishLabel: englishHint(cell.tense, cell.pronoun, card.en),
     expected: cell.expected,
   };
 }

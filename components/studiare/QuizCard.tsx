@@ -105,6 +105,9 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
                 <h2 className="quiz-question">
                   <em>{card.it}</em>
                 </h2>
+                <p className="english-hint" aria-hidden>
+                  ↳ {conjugationPrompt.englishLabel}
+                </p>
               </>
             ) : (
               <>

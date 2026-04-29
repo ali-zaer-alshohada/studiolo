@@ -1,5 +1,5 @@
-import type { Card, ConjugationTable } from "@/lib/srs/types";
-import { regularize } from "@/lib/srs/regular-conjugator";
+import type { Card, ConjugationTable, Pronoun } from "@/lib/srs/types";
+import { regularize, condizionaleFromFuturo, progressiveOf } from "@/lib/srs/regular-conjugator";
 
 /**
  * 16 high-frequency Italian verbs with full conjugation tables for the 4
@@ -256,6 +256,49 @@ const SEED_VERBS: ReadonlyArray<SeedVerb> = [
   },
 ];
 
+/**
+ * Augment a hand-curated ConjugationTable with the three derivable tenses:
+ *   - infinito (just the infinitive on the io cell — no pronoun variation)
+ *   - condizionale_presente (from the futuro_semplice io-form stem)
+ *   - presente_progressivo (stare + gerundio)
+ *
+ * If a tense is already present in the table, leave it alone (so hand-curated
+ * irregulars override the auto-derivation).
+ */
+function autoFill(infinitive: string, conj: ConjugationTable): ConjugationTable {
+  const filled: ConjugationTable = { ...conj };
+
+  if (!filled.infinito) {
+    filled.infinito = { io: infinitive };
+  }
+
+  if (!filled.condizionale_presente && filled.futuro_semplice?.io) {
+    const cond = condizionaleFromFuturo(filled.futuro_semplice.io);
+    if (cond) {
+      const pronouns: Pronoun[] = ["io", "tu", "lui", "noi", "voi", "loro"];
+      const row: Partial<Record<Pronoun, string>> = {};
+      pronouns.forEach((p, idx) => {
+        if (cond[idx]) row[p] = cond[idx]!;
+      });
+      filled.condizionale_presente = row;
+    }
+  }
+
+  if (!filled.presente_progressivo) {
+    const prog = progressiveOf(infinitive);
+    if (prog) {
+      const pronouns: Pronoun[] = ["io", "tu", "lui", "noi", "voi", "loro"];
+      const row: Partial<Record<Pronoun, string>> = {};
+      pronouns.forEach((p, idx) => {
+        if (prog[idx]) row[p] = prog[idx]!;
+      });
+      filled.presente_progressivo = row;
+    }
+  }
+
+  return filled;
+}
+
 /** Build verb-conjugation Card[] for seeding. */
 export function makeAllSeedVerbs(now: number = Date.now()): Card[] {
   return SEED_VERBS.map((sv, i) => ({
@@ -271,7 +314,7 @@ export function makeAllSeedVerbs(now: number = Date.now()): Card[] {
     parentId: null,
     isChild: false,
     createdAt: now,
-    conj: sv.conj,
+    conj: autoFill(sv.infinitive, sv.conj),
   }));
 }
 

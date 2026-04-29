@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { relativeTimeIt } from "@/lib/text/relativeTimeIt";
-import { RomanNumeral } from "@/components/primitives/Roman";
 import {
   initTypingState,
   applyKey,
@@ -13,57 +12,53 @@ import {
 } from "@/lib/srs/typing";
 
 type ErratumProps = {
-  index: number;
   wrong: string;
   correct: string;
   ctx?: string;
   when: number;
   isActive: boolean;
+  /** True for the row that's animating out (held briefly by ErratumSlot). */
+  isLeaving: boolean;
   onActivate: () => void;
+  onMatched: () => void;
   onResolved: () => void;
 };
 
+/**
+ * One row of errata content (no Roman numeral — that lives on ErratumSlot
+ * so it stays fixed in place across queue shifts). Owns the typing state
+ * machine for the active row.
+ */
 export function Erratum({
-  index,
   wrong,
   correct,
   ctx,
   when,
   isActive,
+  isLeaving,
   onActivate,
-  onResolved,
+  onMatched,
 }: ErratumProps) {
   const [state, setState] = useState<TypingState>(() => initTypingState(correct));
   const [matched, setMatched] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
 
-  // Reset typing state whenever the row deactivates or the correct text changes.
   useEffect(() => {
-    if (!isActive) {
-      setState(initTypingState(correct));
-    }
+    if (!isActive) setState(initTypingState(correct));
   }, [isActive, correct]);
 
   // Detect a clean finish — every letter typed right, no wrongs left over.
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || isLeaving) return;
     if (isFinished(state) && state.wrongCount === 0) {
       setMatched(true);
+      onMatched();
     }
-  }, [state, isActive]);
+  }, [state, isActive, isLeaving, onMatched]);
 
-  // Fade out, then ask parent to remove us.
+  // Global keydown listener — only while this row is the active typing one.
   useEffect(() => {
-    if (matched) {
-      const t = setTimeout(onResolved, 400);
-      return () => clearTimeout(t);
-    }
-  }, [matched, onResolved]);
-
-  // Global keydown listener, attached only while this row is the active one.
-  // Escape is handled by the parent (it deactivates this row).
-  useEffect(() => {
-    if (!isActive || matched) return;
+    if (!isActive || matched || isLeaving) return;
     function onKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const k = e.key;
@@ -79,37 +74,33 @@ export function Erratum({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isActive, matched]);
+  }, [isActive, matched, isLeaving]);
 
   return (
     <div
       ref={rowRef}
       className={clsx("erratum", "erratum--interactive", {
         "is-active": isActive,
-        "is-matched": matched,
+        "is-leaving": isLeaving,
       })}
-      role="listitem"
       onClick={() => {
-        if (!matched && !isActive) onActivate();
+        if (!isLeaving && !isActive) onActivate();
       }}
     >
-      <div className="num">
-        <RomanNumeral n={index} suffix="." />
-      </div>
       <div className="pair">
         <div className="wrong">{wrong}</div>
         <div className="corr corr--typed" aria-label={`correggi: ${correct}`}>
           {isActive
             ? state.text.split("").map((ch, i) => {
                 const cls = state.states[i] ?? "untouched";
-                const active = i === state.index;
+                const cursor = i === state.index;
                 return (
                   <span
                     key={i}
                     className={clsx("er-letter", {
                       "is-right": cls === "right",
                       "is-wrong": cls === "wrong",
-                      "is-cursor": active,
+                      "is-cursor": cursor,
                     })}
                   >
                     {ch}

@@ -13,10 +13,13 @@ export type Category =
   | "altro";
 
 export type Tense =
+  | "infinito"
   | "presente"
   | "passato_prossimo"
   | "imperfetto"
-  | "futuro_semplice";
+  | "futuro_semplice"
+  | "condizionale_presente"
+  | "presente_progressivo";
 
 export type Pronoun = "io" | "tu" | "lui" | "noi" | "voi" | "loro";
 

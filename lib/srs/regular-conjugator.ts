@@ -20,13 +20,81 @@ const ENDINGS: Record<Tense, Record<Class, readonly string[]>> = {
     ere: ["erò", "erai", "erà", "eremo", "erete", "eranno"],
     ire: ["irò", "irai", "irà", "iremo", "irete", "iranno"],
   },
-  // Passato prossimo handled separately (compound tense).
-  passato_prossimo: {
-    are: [],
-    ere: [],
-    ire: [],
+  condizionale_presente: {
+    // Mirrors futuro stem (er-/ir-); endings -ei, -esti, -ebbe, -emmo, -este, -ebbero.
+    are: ["erei", "eresti", "erebbe", "eremmo", "ereste", "erebbero"],
+    ere: ["erei", "eresti", "erebbe", "eremmo", "ereste", "erebbero"],
+    ire: ["irei", "iresti", "irebbe", "iremmo", "ireste", "irebbero"],
   },
+  // Compound / lookup tenses — handled separately, not by stem+ending.
+  passato_prossimo: { are: [], ere: [], ire: [] },
+  infinito: { are: [], ere: [], ire: [] },
+  presente_progressivo: { are: [], ere: [], ire: [] },
 };
+
+/** Regular gerund endings: -ando for -are; -endo for -ere/-ire. */
+const GERUND_ENDINGS: Record<Class, string> = {
+  are: "ando",
+  ere: "endo",
+  ire: "endo",
+};
+
+/** Irregular gerunds for common Italian verbs. */
+const IRREGULAR_GERUNDS: Record<string, string> = {
+  essere: "essendo",
+  fare: "facendo",
+  dire: "dicendo",
+  bere: "bevendo",
+  porre: "ponendo",
+  trarre: "traendo",
+};
+
+/** stare in the present tense — needed to compose the progressive. */
+const STARE_PRESENTE: readonly string[] = [
+  "sto", "stai", "sta", "stiamo", "state", "stanno",
+];
+
+/**
+ * Italian gerundio for any verb (regular by default, with a small irregular
+ * lookup). Used to compose presente progressivo: stare + gerund.
+ */
+export function gerundOf(infinitive: string): string | null {
+  const v = infinitive.trim().toLowerCase();
+  if (IRREGULAR_GERUNDS[v]) return IRREGULAR_GERUNDS[v]!;
+  const c = classify(infinitive);
+  if (!c) return null;
+  return c.stem + GERUND_ENDINGS[c.cls];
+}
+
+/**
+ * Derive condizionale presente from the io-form of futuro semplice.
+ * Italian conditional ALWAYS uses the same stem as the future, so this
+ * works for both regulars (parlerò → parlerei) and irregulars (sarò → sarei,
+ * andrò → andrei, avrò → avrei, vorrò → vorrei).
+ */
+export function condizionaleFromFuturo(futuroIoForm: string): string[] | null {
+  // Strip "ò" off the io-form to get the stem (sarò → sar-).
+  if (!futuroIoForm.endsWith("ò")) return null;
+  const stem = futuroIoForm.slice(0, -1);
+  return [
+    `${stem}ei`,
+    `${stem}esti`,
+    `${stem}ebbe`,
+    `${stem}emmo`,
+    `${stem}este`,
+    `${stem}ebbero`,
+  ];
+}
+
+/**
+ * Compose presente progressivo for a verb: stare-present + gerund.
+ * E.g. andare → ["sto andando", "stai andando", ...].
+ */
+export function progressiveOf(infinitive: string): string[] | null {
+  const ger = gerundOf(infinitive);
+  if (!ger) return null;
+  return STARE_PRESENTE.map((s) => `${s} ${ger}`);
+}
 
 const PARTICIPLE_ENDINGS: Record<Class, string> = {
   are: "ato",
@@ -64,6 +132,16 @@ export function regularize(
 ): string[] | null {
   const c = classify(infinitive);
   if (!c) return null;
+
+  // Special "tenses" that are not built from a stem-ending pattern.
+  if (tense === "infinito") {
+    // Infinito has no pronoun variation. Return the bare infinitive as the io
+    // cell so listFilledCells exposes exactly one prompt for this row.
+    return [infinitive, "", "", "", "", ""];
+  }
+  if (tense === "presente_progressivo") {
+    return progressiveOf(infinitive);
+  }
 
   if (tense === "passato_prossimo") {
     if (!aux) return null;

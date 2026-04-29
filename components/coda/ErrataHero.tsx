@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useDeckStore } from "@/lib/store/deck";
 import { useUIStore } from "@/lib/store/ui";
 import { useHydrated } from "@/lib/hooks/useHydrated";
-import { Erratum } from "@/components/coda/Erratum";
+import { ErratumSlot } from "@/components/coda/ErratumSlot";
 import type { Card, ErrorEvent } from "@/lib/srs/types";
 
 const N_ERRATA = 3;
@@ -47,18 +47,20 @@ export function ErrataHero() {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Dismiss a row and auto-advance the active key to whatever fills the
-  // emptied slot — so typing through the queue stays seamless. Only an
-  // outside click or Esc (handled below) breaks the active mode.
-  const resolveSlot = useCallback(
+  // On match: dismiss the matched item immediately (so the queue shifts) AND
+  // advance the active key to the next item. The ErratumSlot keeps the old
+  // content rendered locally for 520ms while it animates the swap, so the
+  // user still sees a smooth transition. Slots themselves stay in their
+  // fixed positions — only the words inside each slot move.
+  const handleMatched = useCallback(
     (key: string, slotIdx: number, queue: ErrorEvent[]) => {
       const next = queue[slotIdx + 1];
+      setActiveKey(next ? errKey(next) : null);
       setDismissed((prev) => {
         const set = new Set(prev);
         set.add(key);
         return set;
       });
-      setActiveKey(next ? errKey(next) : null);
     },
     [],
   );
@@ -108,19 +110,27 @@ export function ErrataHero() {
         </p>
       ) : (
         <div className="errata-list" role="list" ref={listRef}>
-          {top.map((e, i) => {
-            const key = errKey(e);
+          {Array.from({ length: N_ERRATA }, (_, slotIdx) => {
+            const e = top[slotIdx];
+            const item = e
+              ? {
+                  key: errKey(e),
+                  index: slotIdx + 1,
+                  wrong: e.wrong,
+                  correct: e.correct,
+                  ctx: e.ctx,
+                  when: e.when,
+                }
+              : null;
+            const itemKey = item?.key ?? null;
             return (
-              <Erratum
-                key={key}
-                index={i + 1}
-                wrong={e.wrong}
-                correct={e.correct}
-                ctx={e.ctx}
-                when={e.when}
-                isActive={activeKey === key}
-                onActivate={() => setActiveKey(key)}
-                onResolved={() => resolveSlot(key, i, visible)}
+              <ErratumSlot
+                key={slotIdx}
+                slotIdx={slotIdx}
+                item={item}
+                isActive={itemKey !== null && activeKey === itemKey}
+                onActivate={() => itemKey && setActiveKey(itemKey)}
+                onMatched={() => itemKey && handleMatched(itemKey, slotIdx, visible)}
               />
             );
           })}
