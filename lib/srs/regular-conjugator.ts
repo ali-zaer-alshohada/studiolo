@@ -115,6 +115,71 @@ function classify(infinitive: string): { stem: string; cls: Class } | null {
 }
 
 /**
+ * "Safe to auto-regularize" check — a conservative gate before calling
+ * `regularize()` for an unknown verb.
+ *
+ * Only `-are` verbs whose stem doesn't trigger orthographic exceptions
+ * (–care, –gare, –ciare/–giare/–iare) pass — those are reliably regular.
+ * `-ere` and `-ire` verbs in Italian have so many irregulars (chiedere →
+ * chiesto, leggere → letto, capire → -isc-, …) that auto-deriving them is
+ * a correctness risk; let those come from the irregular database
+ * (`data/seedVerbs.lookupIrregular`) or stay as translation cards.
+ *
+ * Pure heuristic. False negatives (skipping a verb that *was* regular) just
+ * mean the verb stays in translation mode — annoying but never wrong.
+ */
+export function isSafeRegular(infinitive: string): boolean {
+  const c = classify(infinitive.trim().toLowerCase());
+  if (!c) return false;
+  if (c.cls !== "are") return false; // be conservative: only -are
+  const last = c.stem.slice(-1);
+  // Orthographic stem-changers we don't handle:
+  //   -care/-gare insert h before -i suffixes (cerco, cerchi, …)
+  //   -iare drops the i (mangi, mangi, mangia, mangiamo, …)
+  if (last === "c" || last === "g" || last === "i") return false;
+  return true;
+}
+
+/**
+ * Build a full ConjugationTable for a regular `-are` verb across every tense
+ * `regularize()` supports. Returns `null` if the verb isn't safe to derive
+ * (caller should fall back to the irregular database or skip).
+ *
+ * Used by the dynamic-conjugation engine in lib/srs/conjugation.ts so a verb
+ * card with no `conj` table can still be drilled in coniugazione mode.
+ */
+export function buildRegularTable(
+  infinitive: string,
+  aux: Auxiliary = "avere",
+): import("./types").ConjugationTable | null {
+  if (!isSafeRegular(infinitive)) return null;
+
+  const TENSES = [
+    "presente",
+    "imperfetto",
+    "futuro_semplice",
+    "condizionale_presente",
+    "passato_prossimo",
+    "presente_progressivo",
+    "infinito",
+  ] as const;
+  const PRONOUNS = ["io", "tu", "lui", "noi", "voi", "loro"] as const;
+
+  const out: import("./types").ConjugationTable = {};
+  for (const tense of TENSES) {
+    const cells = regularize(infinitive, tense, aux);
+    if (!cells) continue;
+    const row: Record<string, string> = {};
+    PRONOUNS.forEach((p, i) => {
+      const v = cells[i];
+      if (typeof v === "string" && v.trim() !== "") row[p] = v;
+    });
+    if (Object.keys(row).length > 0) out[tense] = row;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+/**
  * Conjugate a regular Italian verb across the 6 pronouns for the given tense.
  * Returns `[io, tu, lui, noi, voi, loro]`, or `null` for non-infinitives /
  * passato_prossimo without an aux.

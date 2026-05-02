@@ -1,5 +1,10 @@
 import { describe, test, expect } from "vitest";
-import { pickConjugationPrompt, gradeConjugation } from "@/lib/srs/conjugation";
+import {
+  pickConjugationPrompt,
+  gradeConjugation,
+  resolveConj,
+  isConjugatable,
+} from "@/lib/srs/conjugation";
 import type { Card } from "@/lib/srs/types";
 
 const NOW = 1_700_000_000_000;
@@ -29,11 +34,16 @@ const FULL_TABLE = {
 };
 
 describe("pickConjugationPrompt", () => {
-  test("returns null when the card has no conj", () => {
-    expect(pickConjugationPrompt(mkCard())).toBeNull();
+  test("returns null for a non-verb card with no conj", () => {
+    // Non-verb cards never get auto-derived conj.
+    const c = mkCard();
+    c.cat = "sostantivo";
+    c.it = "il tavolo";
+    expect(pickConjugationPrompt(c)).toBeNull();
   });
 
-  test("returns null for an empty conjugation table", () => {
+  test("returns null for an empty explicit conjugation table", () => {
+    // Explicit empty conj wins over derivation — caller said "no cells".
     expect(pickConjugationPrompt(mkCard({}))).toBeNull();
   });
 
@@ -60,6 +70,97 @@ describe("pickConjugationPrompt", () => {
     const p = pickConjugationPrompt(mkCard(partial as Card["conj"]), () => 0.99);
     expect(p?.pronoun).toBe("io"); // never picks tu (empty)
     expect(p?.expected).toBe("vado");
+  });
+});
+
+describe("resolveConj — dynamic conjugation engine", () => {
+  test("returns explicit card.conj when set (no derivation)", () => {
+    const c = mkCard({ presente: { io: "X" } });
+    expect(resolveConj(c)?.presente?.io).toBe("X");
+  });
+
+  test("auto-derives from the irregular database (seedVerbs)", () => {
+    // andare is in seedVerbs with the correct irregular forms.
+    const c = mkCard();
+    c.it = "andare";
+    const t = resolveConj(c);
+    expect(t?.presente?.io).toBe("vado");
+    expect(t?.passato_prossimo?.io).toBe("sono andato");
+    expect(t?.futuro_semplice?.io).toBe("andrò");
+  });
+
+  test("auto-derives a safe regular -are verb (lavorare)", () => {
+    const c = mkCard();
+    c.it = "lavorare";
+    const t = resolveConj(c);
+    expect(t?.presente?.io).toBe("lavoro");
+    expect(t?.imperfetto?.io).toBe("lavoravo");
+    expect(t?.futuro_semplice?.io).toBe("lavorerò");
+  });
+
+  test("rejects -iare verbs (studiare → would mangle 'studi+i')", () => {
+    // studiare's stem 'studi' ends in 'i'; regularize would output "studii"
+    // for the tu form. Conservative gate skips it; user can hand-curate
+    // via /aggiungi/verbo if they need it conjugated.
+    const c = mkCard();
+    c.it = "studiare";
+    expect(resolveConj(c)).toBeNull();
+  });
+
+  test("returns null for unsafe -are (orthographic exceptions: cercare)", () => {
+    // -care needs an inserted h before -i suffixes (cerchi, cerchiamo).
+    // regularize doesn't handle that, so we conservatively skip.
+    const c = mkCard();
+    c.it = "cercare";
+    expect(resolveConj(c)).toBeNull();
+  });
+
+  test("returns null for unknown -ere/-ire verbs (correctness risk)", () => {
+    // leggere has irregular participle (letto), not "leggiuto". Skip.
+    const c = mkCard();
+    c.it = "leggere";
+    expect(resolveConj(c)).toBeNull();
+  });
+
+  test("returns null for non-verb cards", () => {
+    const c = mkCard();
+    c.cat = "sostantivo";
+    c.it = "il tavolo";
+    expect(resolveConj(c)).toBeNull();
+  });
+});
+
+describe("isConjugatable", () => {
+  test("explicit conj with cells → true", () => {
+    expect(isConjugatable(mkCard(FULL_TABLE))).toBe(true);
+  });
+
+  test("verb in seedVerbs database → true (no explicit conj needed)", () => {
+    const c = mkCard();
+    c.it = "essere";
+    expect(isConjugatable(c)).toBe(true);
+  });
+
+  test("regular -are verb → true", () => {
+    const c = mkCard();
+    c.it = "lavorare";
+    expect(isConjugatable(c)).toBe(true);
+  });
+
+  test("unsafe -are (cercare, mangiare) → false", () => {
+    const c1 = mkCard();
+    c1.it = "cercare";
+    expect(isConjugatable(c1)).toBe(false);
+    const c2 = mkCard();
+    c2.it = "mangiare";
+    expect(isConjugatable(c2)).toBe(false);
+  });
+
+  test("non-verb → false", () => {
+    const c = mkCard();
+    c.cat = "altro";
+    c.it = "comunque";
+    expect(isConjugatable(c)).toBe(false);
   });
 });
 

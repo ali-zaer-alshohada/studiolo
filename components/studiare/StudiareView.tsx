@@ -6,6 +6,7 @@ import { useDeckStore } from "@/lib/store/deck";
 import { useSessionStore } from "@/lib/store/session";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { shuffle, clampSession } from "@/lib/srs/queue";
+import { isConjugatable } from "@/lib/srs/conjugation";
 import type { Card } from "@/lib/srs/types";
 import { SessionBar } from "./SessionBar";
 import { QuizCard } from "./QuizCard";
@@ -205,13 +206,20 @@ export function StudiareView() {
   );
 }
 
-/** Today's due cards, narrowed to the picked study mode. */
+/**
+ * Today's due cards, narrowed to the picked study mode.
+ *
+ * coniugazione mode is resolution-aware: any card whose conjugation can be
+ * computed (explicit `conj`, irregular database lookup, or safe-regular
+ * derivation via regularize) qualifies. traduzione gets everything else
+ * — including verbs we can't compute (translation as fallback).
+ */
 function filterByMode(due: Card[], mode: StudyMode): Card[] {
   return due
     .filter((c) => c.paragraph === undefined)
     .filter((c) => {
-      if (mode === "traduzione") return c.conj === undefined;
-      if (mode === "coniugazione") return c.conj !== undefined;
+      if (mode === "coniugazione") return isConjugatable(c);
+      if (mode === "traduzione") return !isConjugatable(c);
       return false;
     });
 }

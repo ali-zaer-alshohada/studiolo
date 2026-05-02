@@ -320,3 +320,20 @@ export function makeAllSeedVerbs(now: number = Date.now()): Card[] {
 }
 
 export const SEED_VERB_COUNT = SEED_VERBS.length;
+
+/**
+ * Lookup a verb's hand-curated conjugation table by its infinitive.
+ * Returns null if the verb isn't in the seed list. Used by the
+ * dynamic-conjugation engine in lib/srs/conjugation.ts to drill verbs
+ * even when the user's card doesn't carry an explicit conj table.
+ *
+ * Note: returns the autoFill-expanded table (so condizionale_presente,
+ * presente_progressivo, and infinito are all present alongside the four
+ * Phase-2 tenses).
+ */
+export function lookupIrregular(infinitive: string): ConjugationTable | null {
+  const v = infinitive.trim().toLowerCase();
+  const found = SEED_VERBS.find((sv) => sv.infinitive === v);
+  if (!found) return null;
+  return autoFill(found.infinitive, found.conj);
+}

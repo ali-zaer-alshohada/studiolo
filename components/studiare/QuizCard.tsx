@@ -54,9 +54,13 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
 
   // Pick a conjugation cell ONCE per card mount (key === card.id) so the
   // user sees the same prompt across prompt → corretto/sbagliato.
+  // pickConjugationPrompt resolves the table internally — explicit conj
+  // first, then irregular lookup, then regularize fallback for safe -are
+  // verbs. Translation cards (non-verbs) return null and the branch falls
+  // through to the translation prompt below.
   const conjugationPrompt = useMemo(
-    () => (card.conj ? pickConjugationPrompt(card) : null),
-    [card.id, card.conj], // eslint-disable-line react-hooks/exhaustive-deps
+    () => pickConjugationPrompt(card),
+    [card.id], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const isConjugation = conjugationPrompt !== null;
 

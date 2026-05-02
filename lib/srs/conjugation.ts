@@ -1,5 +1,8 @@
 import type { Card, Tense, Pronoun, ConjugationTable } from "./types";
 import { normalize } from "@/lib/text/normalize";
+import { buildRegularTable } from "./regular-conjugator";
+import { inferAuxiliary } from "@/lib/italian/auxiliary";
+import { lookupIrregular } from "@/data/seedVerbs";
 
 const TENSE_LABEL_IT: Record<Tense, string> = {
   infinito: "infinito",
@@ -118,17 +121,52 @@ function listFilledCells(
 }
 
 /**
- * Pick a random (tense, pronoun) cell from a card's conjugation table.
- * Returns null if the card has no conjugation table or no filled cells.
+ * Get the conjugation table for a card — explicit `card.conj` if present,
+ * otherwise computed on-the-fly from the infinitive (`card.it`).
  *
- * Pure given an injectable rng — tests can use a seeded rng.
+ * Resolution order:
+ *   1. `card.conj` (hand-curated via /aggiungi/verbo)
+ *   2. `lookupIrregular(card.it)` — the seedVerbs irregular database
+ *   3. `buildRegularTable(card.it)` — `regularize()` for safe -are verbs only
+ *   4. null — caller treats as non-conjugatable
+ *
+ * This is the engine that lets bulk-imported verbs work in coniugazione
+ * mode without per-card setup. Pure; the table flows through `pickConjugationPrompt`.
+ */
+export function resolveConj(card: Card): ConjugationTable | null {
+  if (card.conj) return card.conj;
+  if (card.cat !== "verbo") return null;
+  const inf = card.it.trim().toLowerCase();
+  if (!inf) return null;
+  const irregular = lookupIrregular(inf);
+  if (irregular) return irregular;
+  const aux = inferAuxiliary(inf);
+  return buildRegularTable(inf, aux);
+}
+
+/** True iff the card can produce at least one conjugation prompt. */
+export function isConjugatable(card: Card): boolean {
+  const table = resolveConj(card);
+  if (!table) return false;
+  return listFilledCells(table).length > 0;
+}
+
+/**
+ * Pick a random (tense, pronoun) cell from a card's conjugation table.
+ * Returns null if the card has no resolvable conjugation table or no
+ * filled cells.
+ *
+ * The table is resolved via `resolveConj` — explicit `card.conj` first,
+ * then irregular lookup, then regular fallback. Pure given an injectable
+ * rng — tests can use a seeded rng.
  */
 export function pickConjugationPrompt(
   card: Card,
   rng: () => number = Math.random,
 ): ConjugationPrompt | null {
-  if (!card.conj) return null;
-  const cells = listFilledCells(card.conj);
+  const table = resolveConj(card);
+  if (!table) return null;
+  const cells = listFilledCells(table);
   if (cells.length === 0) return null;
   const idx = Math.floor(rng() * cells.length);
   const cell = cells[Math.min(idx, cells.length - 1)];
