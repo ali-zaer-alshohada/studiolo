@@ -13,6 +13,7 @@ export function Toc() {
       <TocRow marker={2} label="Dettatura · sentire e scrivere" href="/dettatura" />
       <TocRow marker={3} label="Aggiungere una carta nuova" href="/aggiungi" />
       <TocRow marker={4} label="Diario · le carte raccolte" href="/diario" />
+      <TocRow marker="-..." label="Carte · l'intero mazzo" href="/carte" />
       <TocRow marker="-..." label="Statistiche · concordanza degli errori" href="/statistiche" />
     </nav>
   );

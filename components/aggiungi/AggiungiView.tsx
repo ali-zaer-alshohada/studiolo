@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDeckStore } from "@/lib/store/deck";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { detectCat } from "@/lib/text/detectCat";
@@ -60,6 +61,8 @@ function parseBulkLine(line: string): BulkParsed | null {
  */
 export function AggiungiView() {
   const hydrated = useHydrated();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const addCard = useDeckStore((s) => s.addCard);
   const updateCard = useDeckStore((s) => s.updateCard);
   const cards = useDeckStore((s) => s.cards);
@@ -117,6 +120,21 @@ export function AggiungiView() {
   useEffect(() => {
     if (hydrated) enRef.current?.focus();
   }, [hydrated]);
+
+  // Pick up `?edit=<id>` from /carte (or any deep link). When present and
+  // the card exists, kick off edit mode and strip the param from the URL
+  // so a subsequent navigation back doesn't re-trigger.
+  useEffect(() => {
+    if (!hydrated) return;
+    const editId = searchParams.get("edit");
+    if (!editId) return;
+    if (editingId === editId) return; // already editing this one
+    const card = cards.find((c) => c.id === editId);
+    if (!card) return;
+    startEditing(card);
+    router.replace("/aggiungi");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, searchParams]);
 
   function handleItInput(text: string) {
     setDetected(detectCat(text));
@@ -410,6 +428,7 @@ export function AggiungiView() {
             <div className="ar-head">
               <em>Ultime iscritte</em>
               <span style={{ color: "var(--muted)" }}>· {recent.length}</span>
+              <a href="/carte" className="ar-see-all">vedi tutte →</a>
             </div>
             <div className="ar-list">
               {recent.map((c) => (

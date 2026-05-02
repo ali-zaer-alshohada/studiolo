@@ -377,6 +377,105 @@ header.chrome {
   margin-top: 14px;
 }
 
+/* "vedi tutte →" link in the Ultime iscritte header — pushes to /carte. */
+.ar-see-all {
+  margin-left: auto;
+  font: italic 14px/1 var(--serif);
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--hair);
+  text-underline-offset: 3px;
+}
+.ar-see-all:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+.aggiungi-recent .ar-head {
+  display: flex;
+  align-items: baseline;
+}
+
+/* /carte — full deck browser. Reuses .ar-row from /aggiungi (already
+   styled with the click-to-edit hover/focus). */
+.carte {
+  margin: 24px 0 48px;
+}
+.carte-controls {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.carte-search {
+  flex: 1;
+  font: 18px/1.4 var(--serif);
+  color: var(--fg);
+  background: transparent;
+  border: none;
+  border-bottom: 0.5px solid var(--hair);
+  padding: 8px 0;
+  outline: none;
+  transition: border-color 180ms ease;
+}
+.carte-search:focus {
+  border-bottom-color: var(--accent);
+}
+.carte-search::placeholder {
+  color: var(--muted);
+  opacity: 0.5;
+  font-style: italic;
+}
+.carte-count {
+  font: 11px/1 var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.carte-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 24px;
+}
+.carte-cat-chip {
+  appearance: none;
+  background: transparent;
+  border: 0.5px solid var(--hair);
+  padding: 6px 12px;
+  font: 11px/1 var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.carte-cat-chip:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+.carte-cat-chip[data-active="1"] {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.carte-empty {
+  font: italic 18px/1.6 var(--serif);
+  color: var(--muted);
+  margin: 32px 0;
+  max-width: 56ch;
+}
+.carte-empty em {
+  color: var(--fg);
+  font-style: italic;
+}
+.carte-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .aux-tip {
   font: 14px/1.5 var(--serif);
   color: var(--fg);
