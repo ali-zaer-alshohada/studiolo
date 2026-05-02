@@ -25,6 +25,27 @@ function rungIndicator(card: Card): string {
 }
 
 /**
+ * Parse a single bulk-import line into a draft. Accepts these delimiters
+ * (split on the first match): tab, em-dash, en-dash, " - ", " | ", " = ".
+ * Returns null for blank lines or unparseable ones.
+ */
+const BULK_DELIMITERS_RE = /\t| — | – | - | \| | = /;
+type BulkDraft = { en: string; it: string; cat: Category };
+type BulkParsed = { ok: true; draft: BulkDraft } | { ok: false; line: string };
+function parseBulkLine(line: string): BulkParsed | null {
+  const trimmed = line.trim();
+  if (trimmed === "") return null;
+  const match = trimmed.match(BULK_DELIMITERS_RE);
+  if (!match || match.index === undefined) {
+    return { ok: false, line: trimmed };
+  }
+  const en = trimmed.slice(0, match.index).trim();
+  const it = trimmed.slice(match.index + match[0].length).trim();
+  if (en === "" || it === "") return { ok: false, line: trimmed };
+  return { ok: true, draft: { en, it, cat: detectCat(it) ?? DEFAULT_CAT } };
+}
+
+/**
  * Aggiungi — page v.
  *
  * The design thesis is "a writing surface, no form chrome." Two contenteditable
@@ -54,6 +75,8 @@ export function AggiungiView() {
   const [itText, setItText] = useState("");
   /** When set, the form is editing this existing card instead of creating new. */
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
   const feedbackTimer = useRef<number | undefined>(undefined);
 
   const active: Category = override ?? detected ?? DEFAULT_CAT;
@@ -152,6 +175,25 @@ export function AggiungiView() {
     setDetected(null);
     setOverride(null);
     setFeedback(null);
+  }
+
+  // Bulk-import parse — pure derive from textarea content.
+  const bulkParsed = useMemo(() => {
+    return bulkText.split("\n").map(parseBulkLine).filter((p): p is BulkParsed => p !== null);
+  }, [bulkText]);
+  const bulkOk = bulkParsed.filter((p) => p.ok);
+  const bulkErr = bulkParsed.filter((p) => !p.ok);
+
+  function handleBulkImport() {
+    if (bulkOk.length === 0) return;
+    bulkOk.forEach((p) => {
+      if (p.ok) addCard(p.draft);
+    });
+    setSavedThisSession((n) => n + bulkOk.length);
+    setBulkText("");
+    setBulkOpen(false);
+    setFeedback("iscritta");
+    scheduleFeedbackFade();
   }
 
   function scheduleFeedbackFade() {
@@ -286,6 +328,80 @@ export function AggiungiView() {
           )}
           {savedThisSession === 0 && feedback && feedback !== "aggiornata" && (
             <span className="aggiungi-feedback">{feedback}</span>
+          )}
+        </div>
+
+        {/* Bulk import — paste multiple lines, parse en/it pairs, save as a batch.
+            Accepts tab, em-dash, en-dash, " - ", " | ", " = " as the en→it
+            separator on each line. */}
+        <div className="aggiungi-bulk">
+          {!bulkOpen ? (
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => setBulkOpen(true)}
+            >
+              + importa molte
+            </button>
+          ) : (
+            <div className="bulk-panel">
+              <div className="bulk-head">
+                <em>Importa molte</em>
+                <span className="bulk-help">
+                  {" "}una carta per riga · separatore: <code>—</code> oppure tab
+                </span>
+                <button
+                  type="button"
+                  className="link-btn"
+                  onClick={() => {
+                    setBulkOpen(false);
+                    setBulkText("");
+                  }}
+                  style={{ marginLeft: "auto" }}
+                >
+                  chiudi
+                </button>
+              </div>
+              <textarea
+                className="bulk-textarea"
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                placeholder={"the table — il tavolo\nto study — studiare\n…"}
+                rows={6}
+                spellCheck={false}
+              />
+              {bulkText.trim() !== "" && (
+                <div className="bulk-preview" aria-live="polite">
+                  <p className="bulk-summary">
+                    {bulkOk.length} {bulkOk.length === 1 ? "pronta" : "pronte"}
+                    {bulkErr.length > 0 && (
+                      <span className="bulk-err-count">
+                        {" · "}
+                        {bulkErr.length}{" "}
+                        {bulkErr.length === 1 ? "non riconosciuta" : "non riconosciute"}
+                      </span>
+                    )}
+                  </p>
+                  {bulkErr.length > 0 && (
+                    <ul className="bulk-errors">
+                      {bulkErr.map((p, i) =>
+                        !p.ok ? <li key={i}>{p.line}</li> : null,
+                      )}
+                    </ul>
+                  )}
+                </div>
+              )}
+              <div className="bulk-actions">
+                <button
+                  type="button"
+                  className="avanti-btn"
+                  onClick={handleBulkImport}
+                  disabled={bulkOk.length === 0}
+                >
+                  Iscrivi {bulkOk.length > 0 ? bulkOk.length : ""} ↵
+                </button>
+              </div>
+            </div>
           )}
         </div>
 

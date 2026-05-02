@@ -294,6 +294,89 @@ header.chrome {
   margin-left: 4px;
 }
 
+/* Bulk import — collapsed, click-to-open inline panel below the form. */
+.aggiungi-bulk {
+  margin: 0 0 32px;
+}
+.bulk-panel {
+  border: 0.5px solid var(--hair);
+  padding: 18px 20px;
+  margin: 4px 0;
+  background: color-mix(in oklab, var(--accent) 3%, transparent);
+}
+.bulk-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font: 11px/1 var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.bulk-head em {
+  font: italic 600 16px/1 var(--serif);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--fg);
+}
+.bulk-help code {
+  font: 12px var(--mono);
+  letter-spacing: 0;
+  color: var(--accent);
+  background: transparent;
+  padding: 0 2px;
+}
+.bulk-textarea {
+  width: 100%;
+  font: 14px/1.6 var(--mono);
+  color: var(--fg);
+  background: var(--bg);
+  border: 0.5px solid var(--hair);
+  padding: 10px 12px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 180ms ease;
+}
+.bulk-textarea:focus {
+  border-color: var(--accent);
+}
+.bulk-textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.5;
+}
+.bulk-preview {
+  margin: 10px 0 0;
+}
+.bulk-summary {
+  font: italic 14px/1.4 var(--serif);
+  color: var(--accent);
+  margin: 0;
+}
+.bulk-summary .bulk-err-count {
+  color: var(--alarm, var(--errata));
+}
+.bulk-errors {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.bulk-errors li {
+  font: 13px/1.4 var(--mono);
+  color: var(--muted);
+  padding: 2px 0;
+  opacity: 0.8;
+}
+.bulk-errors li::before {
+  content: "✗ ";
+  color: var(--alarm, var(--errata));
+  margin-right: 4px;
+}
+.bulk-actions {
+  display: flex;
+  margin-top: 14px;
+}
+
 .aux-tip {
   font: 14px/1.5 var(--serif);
   color: var(--fg);
