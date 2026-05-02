@@ -40,6 +40,7 @@ function rungIndicator(card: Card): string {
 export function AggiungiView() {
   const hydrated = useHydrated();
   const addCard = useDeckStore((s) => s.addCard);
+  const updateCard = useDeckStore((s) => s.updateCard);
   const cards = useDeckStore((s) => s.cards);
 
   const enRef = useRef<ContentEditableHandle>(null);
@@ -51,9 +52,12 @@ export function AggiungiView() {
   const [savedThisSession, setSavedThisSession] = useState(0);
   const [hasItInput, setHasItInput] = useState(false);
   const [itText, setItText] = useState("");
+  /** When set, the form is editing this existing card instead of creating new. */
+  const [editingId, setEditingId] = useState<string | null>(null);
   const feedbackTimer = useRef<number | undefined>(undefined);
 
   const active: Category = override ?? detected ?? DEFAULT_CAT;
+  const isEditing = editingId !== null;
 
   // Article suggestion — only for nouns, only when there's text. Strips any
   // article the user already typed so the hint reflects the actual head noun.
@@ -74,12 +78,17 @@ export function AggiungiView() {
   }, [itText, active]);
 
   // Duplicate detection — soft warning if `it` already exists in the deck
-  // (case-insensitive trim only). Doesn't block the save.
+  // (case-insensitive trim only). Doesn't block the save. When editing,
+  // exclude the card under edit so we don't warn the user about themselves.
   const dupCard = useMemo(() => {
     const norm = itText.trim().toLowerCase();
     if (norm === "") return null;
-    return cards.find((c) => c.it.trim().toLowerCase() === norm) ?? null;
-  }, [itText, cards]);
+    return (
+      cards.find(
+        (c) => c.id !== editingId && c.it.trim().toLowerCase() === norm,
+      ) ?? null
+    );
+  }, [itText, cards, editingId]);
 
   // Focus the EN zone on first paint after hydration.
   useEffect(() => {
@@ -100,19 +109,49 @@ export function AggiungiView() {
       scheduleFeedbackFade();
       return;
     }
-    addCard({ en, it, cat: active });
+    if (isEditing && editingId) {
+      updateCard(editingId, { en, it, cat: active });
+      setFeedback("aggiornata");
+    } else {
+      addCard({ en, it, cat: active });
+      setSavedThisSession((n) => n + 1);
+      setFeedback("iscritta");
+    }
 
-    // Clear zones, reset detect/override, refocus EN.
+    // Clear zones, reset state.
     enRef.current?.set("");
     itRef.current?.set("");
     setDetected(null);
     setOverride(null);
     setHasItInput(false);
     setItText("");
-    setSavedThisSession((n) => n + 1);
-    setFeedback("iscritta");
+    setEditingId(null);
     scheduleFeedbackFade();
     enRef.current?.focus();
+  }
+
+  function startEditing(card: Card) {
+    setEditingId(card.id);
+    enRef.current?.set(card.en);
+    itRef.current?.set(card.it);
+    setItText(card.it);
+    setHasItInput(card.it.trim() !== "");
+    setDetected(detectCat(card.it));
+    setOverride(card.cat); // anchor the chip on the existing category
+    enRef.current?.focus();
+    // Scroll the form into view so the edit is visible above the recent list.
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEditing() {
+    setEditingId(null);
+    enRef.current?.set("");
+    itRef.current?.set("");
+    setItText("");
+    setHasItInput(false);
+    setDetected(null);
+    setOverride(null);
+    setFeedback(null);
   }
 
   function scheduleFeedbackFade() {
@@ -220,9 +259,14 @@ export function AggiungiView() {
 
         <div className="aggiungi-actions">
           <button type="button" className="avanti-btn" onClick={handleSave}>
-            Aggiungi ↵
+            {isEditing ? "Aggiorna ↵" : "Aggiungi ↵"}
           </button>
-          {savedThisSession > 0 && (
+          {isEditing && (
+            <button type="button" className="link-btn" onClick={cancelEditing}>
+              annulla
+            </button>
+          )}
+          {savedThisSession > 0 && !isEditing && (
             <span className="aggiungi-feedback">
               {feedback === "iscritta"
                 ? `iscritta · ${savedThisSession} ${savedThisSession === 1 ? "carta" : "carte"}`
@@ -237,7 +281,10 @@ export function AggiungiView() {
               )}
             </span>
           )}
-          {savedThisSession === 0 && feedback && (
+          {feedback === "aggiornata" && (
+            <span className="aggiungi-feedback">aggiornata</span>
+          )}
+          {savedThisSession === 0 && feedback && feedback !== "aggiornata" && (
             <span className="aggiungi-feedback">{feedback}</span>
           )}
         </div>
@@ -250,7 +297,14 @@ export function AggiungiView() {
             </div>
             <div className="ar-list">
               {recent.map((c) => (
-                <div className="ar-row" key={c.id}>
+                <button
+                  type="button"
+                  className="ar-row"
+                  key={c.id}
+                  data-editing={editingId === c.id ? "1" : undefined}
+                  onClick={() => startEditing(c)}
+                  aria-label={`Modifica ${c.it}`}
+                >
                   <span className="en">{c.en}</span>
                   <span className="it">{c.it}</span>
                   <span className="rung-mark" aria-label={`livello ${rungIndicator(c)}`}>
@@ -262,7 +316,7 @@ export function AggiungiView() {
                     )}
                   </span>
                   <span className="cat">{c.cat}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>

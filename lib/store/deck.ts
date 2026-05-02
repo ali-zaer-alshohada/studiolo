@@ -43,6 +43,8 @@ export type DeckActions = {
   addCard: (draft: { en: string; it: string; cat: Card["cat"]; ctx?: string }) => string;
   /** Add a verb card with a conjugation table. Returns the created card's id. */
   addVerbCard: (draft: { en: string; it: string; conj: ConjugationTable }) => string;
+  /** Edit en / it / cat of an existing card in place. SRS state untouched. */
+  updateCard: (id: string, draft: { en: string; it: string; cat: Card["cat"] }) => void;
   /** Add a paragraph card for the typing trainer. Returns the created card's id. */
   addParagraphCard: (draft: { title: string; paragraph: string }) => string;
   /** Wipe everything. Used by the danger button and by tests. */
@@ -142,6 +144,18 @@ export const useDeckStore = create<DeckState & DeckActions>()(
         };
         set((s) => ({ cards: [...s.cards, card] }));
         return id;
+      },
+
+      updateCard: (id, draft) => {
+        set((s) => {
+          const idx = s.cards.findIndex((c) => c.id === id);
+          if (idx < 0) return s;
+          const card = s.cards[idx];
+          if (!card) return s;
+          const cards = [...s.cards];
+          cards[idx] = { ...card, en: draft.en, it: draft.it, cat: draft.cat };
+          return { cards };
+        });
       },
 
       addParagraphCard: (draft) => {
