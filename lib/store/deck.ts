@@ -94,6 +94,10 @@ export const useDeckStore = create<DeckState & DeckActions>()(
 
       seedVerbsIfMissing: () => {
         const s = get();
+        // Skip if the deck has been seeded already — the user may have
+        // intentionally deleted the verb seeds (or wiped to empty for personal
+        // use). We only auto-seed verbs on a truly fresh install.
+        if (s.seeded) return;
         const hasConjugation = s.cards.some((c) => c.conj !== undefined);
         if (hasConjugation) return;
         const verbs = makeAllSeedVerbs(Date.now());
