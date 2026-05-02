@@ -5,6 +5,7 @@ import { useDeckStore } from "@/lib/store/deck";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { detectCat } from "@/lib/text/detectCat";
 import { suggestArticle } from "@/lib/italian/articles";
+import { inferAuxiliary } from "@/lib/italian/auxiliary";
 import type { Category, Card } from "@/lib/srs/types";
 import { ContentEditableZone, type ContentEditableHandle } from "./ContentEditableZone";
 import { CategoryChips } from "./CategoryChips";
@@ -63,6 +64,22 @@ export function AggiungiView() {
     const head = stripped.split(/\s+/)[0] ?? "";
     return suggestArticle(head);
   }, [itText, active]);
+
+  // Auxiliary suggestion — only for verbs, mirrors the article hint.
+  const auxHint = useMemo(() => {
+    if (active !== "verbo") return null;
+    const text = itText.trim();
+    if (text === "") return null;
+    return inferAuxiliary(text);
+  }, [itText, active]);
+
+  // Duplicate detection — soft warning if `it` already exists in the deck
+  // (case-insensitive trim only). Doesn't block the save.
+  const dupCard = useMemo(() => {
+    const norm = itText.trim().toLowerCase();
+    if (norm === "") return null;
+    return cards.find((c) => c.it.trim().toLowerCase() === norm) ?? null;
+  }, [itText, cards]);
 
   // Focus the EN zone on first paint after hydration.
   useEffect(() => {
@@ -176,6 +193,17 @@ export function AggiungiView() {
               {articleHint.confidence === "low" && (
                 <span className="ah-uncertain"> ?</span>
               )}
+            </p>
+          )}
+          {auxHint && (
+            <p className="article-hint" aria-live="polite">
+              suggerimento · ausiliare ·{" "}
+              <em className="ah-art">{auxHint}</em>
+            </p>
+          )}
+          {dupCard && (
+            <p className="dup-hint" aria-live="polite">
+              esiste già · <em>{dupCard.en}</em>
             </p>
           )}
         </div>
