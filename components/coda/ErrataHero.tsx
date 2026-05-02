@@ -94,6 +94,7 @@ export function ErrataHero() {
     .sort((a, b) => b.when - a.when)
     .filter((e) => !dismissed.has(errKey(e)));
   const top = visible.slice(0, N_ERRATA);
+  const cardById = new Map(cards.map((c) => [c.id, c]));
 
   return (
     <div className="errata">
@@ -116,7 +117,10 @@ export function ErrataHero() {
               ? {
                   key: errKey(e),
                   index: slotIdx + 1,
-                  wrong: e.wrong,
+                  // Show the English prompt of the card above the correction —
+                  // gives the user context for what the Italian word means,
+                  // instead of repeating their previous wrong attempt.
+                  wrong: cardById.get(e.cardId)?.en ?? "",
                   correct: e.correct,
                   ctx: e.ctx,
                   when: e.when,

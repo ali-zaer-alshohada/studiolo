@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDeckStore } from "@/lib/store/deck";
 import { useSessionStore } from "@/lib/store/session";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { dueToday, shuffle } from "@/lib/srs/queue";
+import type { Card } from "@/lib/srs/types";
 import { SessionBar } from "./SessionBar";
 import { QuizCard } from "./QuizCard";
 
+type StudyMode = "traduzione" | "coniugazione" | "gioco";
+
 /**
- * Page-level coordinator for /studiare. Reads the deck store, starts a session
- * once on mount if there are due cards, advances on `onFinishedAnswering`,
- * shows an empty state when there's nothing due, and a session-end summary
- * when finished. Esc anywhere on the page returns to Coda.
+ * Page-level coordinator for /studiare. Shows a 3-mode picker first
+ * (traduzione / coniugazione / gioco). On mode pick, filters today's due
+ * cards and starts the session. Esc anywhere on the page returns to Coda.
+ *
+ * "gioco" is deferred — clicking shows an "in arrivo" tooltip but does
+ * not start a session.
  */
 export function StudiareView() {
   const hydrated = useHydrated();
@@ -25,20 +30,27 @@ export function StudiareView() {
   const advance = useSessionStore((s) => s.advance);
   const abort = useSessionStore((s) => s.abort);
 
-  // Start a session once we hydrate (and only if not already active).
-  useEffect(() => {
-    if (!hydrated) return;
-    if (active) return;
-    // Exclude paragraph cards (typing-trainer-only) from the SRS queue.
-    const due = dueToday(cards, Date.now()).filter((c) => c.paragraph === undefined);
-    if (due.length === 0) return;
-    startSession(shuffle(due).map((c) => c.id));
-  }, [hydrated, active, cards, startSession]);
+  const [mode, setMode] = useState<StudyMode | null>(null);
+  const [gameTip, setGameTip] = useState(false);
 
-  // Esc-to-Coda is now handled globally in ClientShell via useEscToCoda.
-  // The session is intentionally NOT aborted on Esc — leaving the page
-  // simply returns the user to Coda; re-visiting /studiare picks up from
-  // where they left off because the active session is in-memory only.
+  function pickMode(m: StudyMode) {
+    if (m === "gioco") {
+      setGameTip(true);
+      window.setTimeout(() => setGameTip(false), 2400);
+      return;
+    }
+    abort();
+    setMode(m);
+    const due = filterByMode(dueToday(cards, Date.now()), m);
+    if (due.length > 0) {
+      startSession(shuffle(due).map((c) => c.id));
+    }
+  }
+
+  function backToPicker() {
+    abort();
+    setMode(null);
+  }
 
   if (!hydrated) {
     return (
@@ -53,26 +65,83 @@ export function StudiareView() {
     );
   }
 
-  // No active session AND there were no due cards → empty state.
-  if (!active) {
+  // No active session AND no mode picked yet → show the 3-mode picker.
+  if (!active && !mode) {
     return (
       <section aria-labelledby="studiare-heading">
         <h1 id="studiare-heading" className="visually-hidden">Studiare · pagina iii</h1>
         <div className="section-label" aria-hidden>
           <span>Studiare</span>
           <span className="rule" aria-hidden />
-          <span className="pageno">iii · sessione</span>
+          <span className="pageno">iii · scegli il modo</span>
+        </div>
+        <p className="mode-prompt">
+          <em>Studiare le carte di oggi</em> · scegli il modo
+        </p>
+        <div className="mode-picker" role="group" aria-label="Modo di studio">
+          <button
+            type="button"
+            className="mode-chip"
+            onClick={() => pickMode("traduzione")}
+          >
+            <span className="mode-chip-label">traduzione</span>
+            <span className="mode-chip-hint">en → it</span>
+          </button>
+          <button
+            type="button"
+            className="mode-chip"
+            onClick={() => pickMode("coniugazione")}
+          >
+            <span className="mode-chip-label">coniugazione</span>
+            <span className="mode-chip-hint">solo verbi</span>
+          </button>
+          <button
+            type="button"
+            className="mode-chip mode-chip--soon"
+            onClick={() => pickMode("gioco")}
+            aria-label="Gioco — in arrivo"
+          >
+            <span className="mode-chip-label">gioco</span>
+            <span className="mode-chip-hint">presto</span>
+          </button>
+        </div>
+        <p
+          className="mode-tip"
+          role="status"
+          aria-live="polite"
+          data-visible={gameTip ? "1" : "0"}
+        >
+          <em>In arrivo.</em> Stiamo ancora pensando come si gioca.
+        </p>
+      </section>
+    );
+  }
+
+  // Mode picked but no due cards for that mode → empty state with a back link.
+  if (!active && mode) {
+    return (
+      <section aria-labelledby="studiare-heading">
+        <h1 id="studiare-heading" className="visually-hidden">Studiare · pagina iii</h1>
+        <div className="section-label" aria-hidden>
+          <span>Studiare</span>
+          <span className="rule" aria-hidden />
+          <span className="pageno">iii · {mode}</span>
         </div>
         <p className="empty-line">
-          <em>Nessuna carta da rivedere.</em> Riposa, oppure{" "}
+          <em>Nessuna carta da rivedere</em> in modo <em>{mode}</em>. Riposa, oppure{" "}
           <a href="/aggiungi" style={{ color: "var(--accent)" }}>aggiungine</a>.
+        </p>
+        <p className="mode-back">
+          <button type="button" className="link-btn" onClick={backToPicker}>
+            ← cambia modo
+          </button>
         </p>
       </section>
     );
   }
 
   // Session finished (cursor past end).
-  if (active.idx >= active.queue.length) {
+  if (active && active.idx >= active.queue.length) {
     return (
       <section aria-labelledby="studiare-heading">
         <h1 id="studiare-heading" className="visually-hidden">Studiare · pagina iii</h1>
@@ -82,9 +151,7 @@ export function StudiareView() {
           <span className="pageno">iii · finita</span>
         </div>
         <div className="session-end">
-          <h2 className="session-end-title">
-            Sessione finita.
-          </h2>
+          <h2 className="session-end-title">Sessione finita.</h2>
           <p className="session-end-stats">
             <span className="v">{active.correctCount}</span> giuste su{" "}
             <span className="v">{active.queue.length}</span>.
@@ -106,7 +173,7 @@ export function StudiareView() {
   }
 
   // Active card.
-  const cardId = active.queue[active.idx];
+  const cardId = active!.queue[active!.idx];
   const currentCard = cards.find((c) => c.id === cardId);
   if (!currentCard) {
     // Card was deleted mid-session — just advance.
@@ -123,7 +190,7 @@ export function StudiareView() {
         <span className="pageno">iii · sessione</span>
       </div>
 
-      <SessionBar done={active.idx} total={active.queue.length} />
+      <SessionBar done={active!.idx} total={active!.queue.length} />
       <QuizCard
         key={currentCard.id}
         card={currentCard}
@@ -131,4 +198,15 @@ export function StudiareView() {
       />
     </section>
   );
+}
+
+/** Today's due cards, narrowed to the picked study mode. */
+function filterByMode(due: Card[], mode: StudyMode): Card[] {
+  return due
+    .filter((c) => c.paragraph === undefined)
+    .filter((c) => {
+      if (mode === "traduzione") return c.conj === undefined;
+      if (mode === "coniugazione") return c.conj !== undefined;
+      return false;
+    });
 }

@@ -23,20 +23,20 @@ const PRONOUN_LABEL_IT: Record<Pronoun, string> = {
 /**
  * English macro per (tense, pronoun) — a quiet hint of what form is being
  * asked. Doesn't try to perfectly conjugate the verb; uses generic markers
- * like "did" or "would do" so the user can map their English mental model
- * to the Italian form. Pattern: replaces nothing in card.en, just describes
- * the slot being tested.
+ * like "did" or "used to" so the user can map their English mental model
+ * to the Italian form. Templates avoid "-ed" suffixes that would mangle
+ * irregulars (avoids "have-ed", "be-ed", etc).
  *
  * Reading C of the verb-chart redesign — pure label, no per-verb data.
  */
 const ENGLISH_TENSE_HINT: Record<Tense, string> = {
   infinito: "to {verb}",
   presente: "{pron} {verb}",
-  passato_prossimo: "{pron} have {verb}-ed / {pron} did",
-  imperfetto: "{pron} was {verb}-ing / used to",
+  passato_prossimo: "{pron} did {verb}",
+  imperfetto: "{pron} used to {verb}",
   futuro_semplice: "{pron} will {verb}",
-  condizionale_presente: "{pron} would {verb} / might",
-  presente_progressivo: "{pron} {be} {verb}-ing",
+  condizionale_presente: "{pron} would {verb}",
+  presente_progressivo: "{pron} {be} {ving}",
 };
 
 const ENGLISH_PRONOUN: Record<Pronoun, string> = {
@@ -62,13 +62,26 @@ function bareEnglishVerb(en: string): string {
   return en.replace(/^to\s+/i, "").trim();
 }
 
+/**
+ * Bare-verb → -ing form. Handles the common e-drop rule
+ * (have → having, take → taking) but leaves rarer cases alone
+ * (lie → lieing, run → runing) — the hint is intentionally rough.
+ */
+function verbToIng(verb: string): string {
+  if (verb.endsWith("e") && !verb.endsWith("ee") && verb.length > 2) {
+    return verb.slice(0, -1) + "ing";
+  }
+  return verb + "ing";
+}
+
 /** Build the English macro hint for a (tense, pronoun, card.en) triple. */
 export function englishHint(tense: Tense, pronoun: Pronoun, en: string): string {
   const verb = bareEnglishVerb(en);
   return ENGLISH_TENSE_HINT[tense]
-    .replace("{pron}", ENGLISH_PRONOUN[pronoun])
-    .replace("{be}", ENGLISH_BE[pronoun])
-    .replace("{verb}", verb);
+    .replaceAll("{pron}", ENGLISH_PRONOUN[pronoun])
+    .replaceAll("{be}", ENGLISH_BE[pronoun])
+    .replaceAll("{ving}", verbToIng(verb))
+    .replaceAll("{verb}", verb);
 }
 
 export type ConjugationPrompt = {
