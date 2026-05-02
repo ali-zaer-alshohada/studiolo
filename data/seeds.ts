@@ -46,6 +46,7 @@ export function makeSeedCard(draft: SeedDraft, now: number, idSeed: string): Car
     it: draft.it,
     cat: draft.cat,
     rung: 0,
+    charge: 0,
     due: now, // due immediately on first run, so the seeded queue has a body of 25
     wrongs: 0,
     reviewed: 0,

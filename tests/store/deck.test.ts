@@ -126,7 +126,7 @@ describe("deck store · importState", () => {
     const incoming: DeckPayload = {
       cards: [{
         id: "imported", en: "the cat", it: "il gatto", cat: "sostantivo",
-        rung: 0, due: 0, wrongs: 0, reviewed: 0, history: [],
+        rung: 0, charge: 0, due: 0, wrongs: 0, reviewed: 0, history: [],
         parentId: null, isChild: false, createdAt: 0,
       }],
       errors: [], sessions: [],
@@ -149,12 +149,12 @@ describe("deck store · mergeState", () => {
       cards: [
         {
           id: localId!, en: "OVERWRITE", it: "x", cat: "altro",
-          rung: 0, due: 0, wrongs: 0, reviewed: 0, history: [],
+          rung: 0, charge: 0, due: 0, wrongs: 0, reviewed: 0, history: [],
           parentId: null, isChild: false, createdAt: 0,
         },
         {
           id: "unique", en: "y", it: "y", cat: "altro",
-          rung: 0, due: 0, wrongs: 0, reviewed: 0, history: [],
+          rung: 0, charge: 0, due: 0, wrongs: 0, reviewed: 0, history: [],
           parentId: null, isChild: false, createdAt: 0,
         },
       ],

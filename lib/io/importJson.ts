@@ -26,8 +26,14 @@ function validateCard(c: unknown): c is Card {
 function normalizeDeck(raw: Partial<DeckPayload> & { cards: unknown }): DeckPayload | null {
   if (!Array.isArray(raw.cards)) return null;
   if (!raw.cards.every(validateCard)) return null;
+  // Forward-compat: v1 export files predate the `charge` field. Default to 0
+  // so the imported deck satisfies the v2 schema.
+  const cards = (raw.cards as Card[]).map((c) => ({
+    ...c,
+    charge: typeof c.charge === "number" ? c.charge : 0,
+  }));
   return {
-    cards: raw.cards as Card[],
+    cards,
     errors: Array.isArray(raw.errors) ? (raw.errors as ErrorEvent[]) : [],
     sessions: Array.isArray(raw.sessions) ? (raw.sessions as Session[]) : [],
     streakLastDay: typeof raw.streakLastDay === "string" ? raw.streakLastDay : null,

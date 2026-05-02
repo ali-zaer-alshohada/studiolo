@@ -17,6 +17,7 @@ function mkCard(overrides: Partial<Card> = {}): Card {
     it: "il tavolo",
     cat: "sostantivo",
     rung: 0,
+    charge: 0,
     due: NOW,
     wrongs: 0,
     reviewed: 0,

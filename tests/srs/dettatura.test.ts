@@ -11,6 +11,7 @@ function mkCard(it: string, overrides: Partial<Card> = {}): Card {
     it,
     cat: "verbo",
     rung: 0,
+    charge: 0,
     due: NOW,
     wrongs: 0,
     reviewed: 0,

@@ -106,6 +106,7 @@ export const useDeckStore = create<DeckState & DeckActions>()(
           cat: draft.cat,
           ctx: draft.ctx,
           rung: 0,
+          charge: 0,
           due: now,
           wrongs: 0,
           reviewed: 0,
@@ -127,6 +128,7 @@ export const useDeckStore = create<DeckState & DeckActions>()(
           it: draft.it,
           cat: "verbo",
           rung: 0,
+          charge: 0,
           due: now,
           wrongs: 0,
           reviewed: 0,
@@ -149,6 +151,7 @@ export const useDeckStore = create<DeckState & DeckActions>()(
           it: draft.paragraph.slice(0, 60), // first 60 chars as a preview label
           cat: "altro",
           rung: 0,
+          charge: 0,
           due: now + 365 * 86_400_000, // far future — never enters SRS queue
           wrongs: 0,
           reviewed: 0,
@@ -251,7 +254,7 @@ export const useDeckStore = create<DeckState & DeckActions>()(
     }),
     {
       name: "postilla.state.v1",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       // Only persist data fields, not actions.
       partialize: (s) => ({
@@ -263,6 +266,27 @@ export const useDeckStore = create<DeckState & DeckActions>()(
         lastBackup: s.lastBackup,
         seeded: s.seeded,
       }),
+      /**
+       * v1 → v2: add `charge: 0` to every card. Existing rung values carry
+       * over 1:1 (the new ladder has the same length, just different intervals).
+       * `collected` is left undefined; the certificate at rung v will only
+       * surface for cards the user encounters going forward.
+       */
+      migrate: (persistedState, version) => {
+        if (version >= 2 || !persistedState || typeof persistedState !== "object") {
+          return persistedState as DeckState;
+        }
+        const s = persistedState as Partial<DeckState> & {
+          cards?: ReadonlyArray<Card & { charge?: number }>;
+        };
+        return {
+          ...s,
+          cards: (s.cards ?? []).map((c) => ({
+            ...c,
+            charge: typeof c.charge === "number" ? c.charge : 0,
+          })),
+        } as DeckState;
+      },
       // skipHydration: false (default) — Zustand reads localStorage on client mount.
     },
   ),

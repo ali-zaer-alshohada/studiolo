@@ -11,6 +11,7 @@ function mkCard(id: string, dueOffset: number): Card {
     it: id,
     cat: "altro",
     rung: 0,
+    charge: 0,
     due: NOW + dueOffset,
     wrongs: 0,
     reviewed: 0,

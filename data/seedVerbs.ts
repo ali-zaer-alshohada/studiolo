@@ -307,6 +307,7 @@ export function makeAllSeedVerbs(now: number = Date.now()): Card[] {
     it: sv.infinitive,
     cat: "verbo" as const,
     rung: 0,
+    charge: 0,
     due: now - i, // small jitter
     wrongs: 0,
     reviewed: 0,

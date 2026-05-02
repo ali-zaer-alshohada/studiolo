@@ -41,6 +41,7 @@ export function makeChild(parent: Card, ctx: string, now: number): Card {
     cat: parent.cat,
     ctx,
     rung: 0,
+    charge: 0,
     due: now,
     wrongs: 0,
     reviewed: 0,
