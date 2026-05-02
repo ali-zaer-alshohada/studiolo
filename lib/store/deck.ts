@@ -52,6 +52,8 @@ export type DeckActions = {
   // SRS actions — implemented in M5.
   gradeCorrect: (cardId: string) => void;
   gradeWrong: (cardId: string, wrongInput: string, correctText: string, ctx: string) => void;
+  /** Update the diary sentence for a collected card. No-op if the card isn't collected yet. */
+  setSentence: (cardId: string, sentence: string) => void;
   /** Replace the entire deck state with the given payload. Used by Importa → Sostituisci. */
   importState: (payload: DeckPayload) => void;
   /** Merge the payload into current state (dedupe cards by id, append+sort errors, MAX streak). */
@@ -221,6 +223,21 @@ export const useDeckStore = create<DeckState & DeckActions>()(
           );
 
           return { cards, errors: [...s.errors, errorEvent], ...streak };
+        });
+      },
+
+      setSentence: (cardId, sentence) => {
+        set((s) => {
+          const idx = s.cards.findIndex((c) => c.id === cardId);
+          if (idx < 0) return s;
+          const card = s.cards[idx];
+          if (!card || !card.collected) return s; // only collected cards get a sentence
+          const cards = [...s.cards];
+          cards[idx] = {
+            ...card,
+            collected: { ...card.collected, sentence },
+          };
+          return { cards };
         });
       },
 

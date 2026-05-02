@@ -1634,6 +1634,138 @@ details[open] > .letter-head {
   color: var(--bg);
 }
 
+/* ─── certificate ribbon — appears at the moment of mastery (rung v + first
+   correct). Pure UI moment; the actual collection happened in srsCorrect. */
+.certificate {
+  margin: 12px 0 4px;
+  padding: 18px 22px;
+  border: 0.5px solid var(--accent);
+  background: color-mix(in oklab, var(--accent) 6%, transparent);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  animation: cert-fade-in 360ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes cert-fade-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.certificate .cert-mark {
+  font: italic 32px/1 var(--serif);
+  color: var(--accent);
+}
+.certificate .cert-text {
+  font: italic 17px/1.4 var(--serif);
+  color: var(--fg);
+  margin: 0;
+}
+.certificate .cert-text em {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--accent);
+}
+.certificate .cert-cta {
+  font: 11px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--hair);
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+.certificate .cert-cta:hover {
+  text-decoration-color: var(--accent);
+}
+@media (max-width: 700px) {
+  .certificate {
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+  }
+  .certificate .cert-cta {
+    grid-column: 1 / -1;
+    text-align: right;
+  }
+}
+
+/* ─── diario page — collected cards + sentence textareas ─── */
+.diario {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin: 32px 0;
+}
+.diario-empty {
+  font: italic 18px/1.6 var(--serif);
+  color: var(--muted);
+  margin: 32px 0;
+  max-width: 56ch;
+}
+.diario-empty em {
+  color: var(--fg);
+  font-style: italic;
+}
+.diario-entry {
+  border-bottom: 0.5px solid var(--hair);
+  padding-bottom: 24px;
+}
+.diario-entry:last-child {
+  border-bottom: none;
+}
+.diario-head {
+  margin-bottom: 14px;
+}
+.diario-it {
+  font: italic 600 32px/1.2 var(--serif);
+  color: var(--fg);
+  margin: 0 0 4px;
+}
+.diario-en {
+  font: 14px/1.4 var(--mono);
+  color: var(--muted);
+  margin: 0 0 6px;
+  letter-spacing: -0.005em;
+}
+.diario-meta {
+  font: 9px/1.5 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+.diario-sentence-label {
+  display: block;
+  font: italic 13px/1.4 var(--serif);
+  color: var(--muted);
+  margin: 8px 0 6px;
+}
+.diario-sentence-label em {
+  color: var(--fg);
+  font-style: italic;
+}
+.diario-sentence {
+  display: block;
+  width: 100%;
+  font: italic 18px/1.5 var(--serif);
+  color: var(--fg);
+  background: transparent;
+  border: none;
+  border-bottom: 0.5px solid var(--hair);
+  padding: 6px 0 8px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 180ms ease;
+}
+.diario-sentence::placeholder {
+  color: var(--muted);
+  opacity: 0.5;
+  font-style: italic;
+}
+.diario-sentence:focus {
+  border-bottom-color: var(--accent);
+}
+
 /* apparatus — right column with ladder */
 .apparatus {
   border-left: 0.5px solid var(--hair);

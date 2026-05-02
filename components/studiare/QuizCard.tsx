@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
 import type { Card } from "@/lib/srs/types";
 import { useSessionStore } from "@/lib/store/session";
 import { useDeckStore } from "@/lib/store/deck";
@@ -9,6 +10,8 @@ import { pickConjugationPrompt, gradeConjugation } from "@/lib/srs/conjugation";
 import { inferAuxiliary, userUsedWrongAuxiliary } from "@/lib/italian/auxiliary";
 import { AccentKeys } from "./AccentKeys";
 import { Apparatus } from "./Apparatus";
+
+const TOP_RUNG = 4; // index of rung v in the main ladder
 
 type QuizCardProps = {
   card: Card;
@@ -41,6 +44,14 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Snapshot taken at submit time. If the card was at rung v with no prior
+  // collection, *this* right answer is the moment of mastery — the certificate
+  // affordance appears below the ✓ in corretto state. Reset when the card mounts.
+  const wasUncollectedV = useRef(false);
+  useEffect(() => {
+    wasUncollectedV.current = false;
+  }, [card.id]);
+
   // Pick a conjugation cell ONCE per card mount (key === card.id) so the
   // user sees the same prompt across prompt → corretto/sbagliato.
   const conjugationPrompt = useMemo(
@@ -49,18 +60,32 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
   );
   const isConjugation = conjugationPrompt !== null;
 
+  // Certificate moment = post-grade card is collected AND we noticed it was
+  // uncollected at submit time. Disables auto-advance so the user can read it.
+  const certificateMoment =
+    state === "corretto" &&
+    wasUncollectedV.current &&
+    !card.isChild &&
+    card.rung === TOP_RUNG &&
+    card.collected !== undefined;
+
   useEffect(() => {
     if (state === "prompt") inputRef.current?.focus();
   }, [state, card.id]);
 
   useEffect(() => {
     if (state !== "corretto") return;
+    if (certificateMoment) return; // wait for the user; no auto-advance
     const t = window.setTimeout(onFinishedAnswering, AUTO_ADVANCE_MS);
     return () => window.clearTimeout(t);
-  }, [state, onFinishedAnswering]);
+  }, [state, onFinishedAnswering, certificateMoment]);
 
   function submit() {
     if (state !== "prompt") return;
+    // Capture pre-grade collection state for the certificate ribbon.
+    if (!card.isChild && card.rung === TOP_RUNG && card.collected === undefined) {
+      wasUncollectedV.current = true;
+    }
     if (isConjugation && conjugationPrompt) {
       const r = gradeConjugation(conjugationPrompt, userInput);
       if (r.ok) {
@@ -163,6 +188,25 @@ export function QuizCard({ card, onFinishedAnswering }: QuizCardProps) {
               <span className="check" aria-label="Corretto">✓</span>
               <span>{userInput}</span>
             </p>
+            {certificateMoment && (
+              <div className="certificate" role="status" aria-live="polite">
+                <span className="cert-mark" aria-hidden>✦</span>
+                <p className="cert-text">
+                  Hai padroneggiato <em>{card.it}</em>.
+                </p>
+                <Link
+                  href="/diario"
+                  className="cert-cta"
+                  onClick={() => {
+                    // Treat following the link as advancing the session;
+                    // the user is choosing diary over the next card.
+                    onFinishedAnswering();
+                  }}
+                >
+                  Aggiungi al diario →
+                </Link>
+              </div>
+            )}
             <button
               type="button"
               className="avanti-btn"
