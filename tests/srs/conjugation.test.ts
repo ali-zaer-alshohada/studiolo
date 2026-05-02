@@ -107,18 +107,19 @@ describe("resolveConj — dynamic conjugation engine", () => {
     expect(resolveConj(c)).toBeNull();
   });
 
-  test("returns null for unsafe -are (orthographic exceptions: cercare)", () => {
-    // -care needs an inserted h before -i suffixes (cerchi, cerchiamo).
-    // regularize doesn't handle that, so we conservatively skip.
+  test("returns null for unsafe -are not in DB (orthographic: lasciare)", () => {
+    // lasciare's stem 'lasci' ends in 'i' (-iare); regularize would output
+    // "lascii". Not in seedVerbs DB → falls through to safety gate → null.
     const c = mkCard();
-    c.it = "cercare";
+    c.it = "lasciare";
     expect(resolveConj(c)).toBeNull();
   });
 
-  test("returns null for unknown -ere/-ire verbs (correctness risk)", () => {
-    // leggere has irregular participle (letto), not "leggiuto". Skip.
+  test("returns null for -ere/-ire not in DB (correctness risk)", () => {
+    // tenere is irregular (tengo, terrò, tenuto) and not in seedVerbs.
+    // The conservative gate skips all -ere/-ire that aren't hand-curated.
     const c = mkCard();
-    c.it = "leggere";
+    c.it = "tenere";
     expect(resolveConj(c)).toBeNull();
   });
 
@@ -147,13 +148,26 @@ describe("isConjugatable", () => {
     expect(isConjugatable(c)).toBe(true);
   });
 
-  test("unsafe -are (cercare, mangiare) → false", () => {
+  test("unsafe -are not in DB (lasciare, cominciare) → false", () => {
+    // -iare verbs not in seedVerbs fall to the safety gate and return false.
     const c1 = mkCard();
-    c1.it = "cercare";
+    c1.it = "lasciare";
     expect(isConjugatable(c1)).toBe(false);
     const c2 = mkCard();
-    c2.it = "mangiare";
+    c2.it = "cominciare";
     expect(isConjugatable(c2)).toBe(false);
+  });
+
+  test("verb in DB → true even when orthographically tricky (cercare, mangiare)", () => {
+    // These were once safety-gated, but now have hand-curated tables in
+    // seedVerbs (with correct h-insertion / i-drop). isConjugatable picks up
+    // the explicit table via lookupIrregular before any gate runs.
+    const c1 = mkCard();
+    c1.it = "cercare";
+    expect(isConjugatable(c1)).toBe(true);
+    const c2 = mkCard();
+    c2.it = "mangiare";
+    expect(isConjugatable(c2)).toBe(true);
   });
 
   test("non-verb → false", () => {
