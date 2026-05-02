@@ -1,7 +1,8 @@
 "use client";
 
+import clsx from "clsx";
 import type { Card } from "@/lib/srs/types";
-import { LADDER_HOURS, CHILD_LADDER_HOURS } from "@/lib/srs/ladder";
+import { LADDER_HOURS, STACKS, CHILD_LADDER_HOURS } from "@/lib/srs/ladder";
 import { toRoman } from "@/components/primitives";
 
 type ApparatusProps = {
@@ -16,11 +17,19 @@ function rungLabel(hours: number): string {
 
 /**
  * Right-column apparatus. Shows the SRS ladder as a vertical roman-numeral
- * siglum with the current rung highlighted, plus marginalia (recent wrongs)
- * and a child-of indicator if this card is itself a chained child.
+ * siglum with a per-rung track bar that visualizes the current card's
+ * stack progress. Past rungs are fully filled; the current rung shows
+ * `max(0, charge)` of `STACKS[rung]` segments; future rungs are empty.
+ *
+ * Negative charge ("losing ground") gets a small ↓ marker beside the bar.
+ *
+ * Children use the simpler legacy 3-rung ladder with single-segment bars
+ * (the stacks model doesn't apply to children — see lib/srs/ladder.ts).
  */
 export function Apparatus({ card }: ApparatusProps) {
   const ladder = card.isChild ? CHILD_LADDER_HOURS : LADDER_HOURS;
+  const stacks = card.isChild ? ladder.map(() => 1) : STACKS;
+  const losingGround = !card.isChild && card.charge < 0;
 
   return (
     <aside className="apparatus" aria-label="Apparato critico">
@@ -30,11 +39,32 @@ export function Apparatus({ card }: ApparatusProps) {
           {ladder.map((hours, i) => {
             const state =
               i < card.rung ? "past" : i === card.rung ? "now" : "future";
+            const segs = stacks[i] ?? 1;
+            const filled =
+              state === "past"
+                ? segs
+                : state === "now"
+                  ? Math.max(0, Math.min(card.charge, segs))
+                  : 0;
             return (
               <div className="rung" data-state={state} key={i}>
                 <span className="siglum">{toRoman(i + 1)}</span>
                 <span className="span">{rungLabel(hours)}</span>
-                <span className="dot" aria-hidden />
+                <span className="cammino-track" aria-hidden>
+                  {state === "now" && losingGround && (
+                    <span className="cammino-losing" title="losing ground">
+                      ↓
+                    </span>
+                  )}
+                  {Array.from({ length: segs }, (_, j) => (
+                    <span
+                      key={j}
+                      className={clsx("cammino-segment", {
+                        "is-filled": j < filled,
+                      })}
+                    />
+                  ))}
+                </span>
               </div>
             );
           })}

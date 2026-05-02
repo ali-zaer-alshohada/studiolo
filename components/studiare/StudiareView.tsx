@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useDeckStore } from "@/lib/store/deck";
 import { useSessionStore } from "@/lib/store/session";
 import { useHydrated } from "@/lib/hooks/useHydrated";
-import { dueToday, shuffle } from "@/lib/srs/queue";
+import { shuffle, clampSession } from "@/lib/srs/queue";
 import type { Card } from "@/lib/srs/types";
 import { SessionBar } from "./SessionBar";
 import { QuizCard } from "./QuizCard";
@@ -41,9 +41,14 @@ export function StudiareView() {
     }
     abort();
     setMode(m);
-    const due = filterByMode(dueToday(cards, Date.now()), m);
-    if (due.length > 0) {
-      startSession(shuffle(due).map((c) => c.id));
+    // Filter the entire deck by mode first so the padding pool is also
+    // mode-correct (a coniugazione session doesn't get padded with non-verb
+    // translation cards).
+    const modeEligible = filterByMode(cards, m);
+    const due = modeEligible.filter((c) => c.due <= Date.now());
+    const clamped = clampSession(due, modeEligible, 20, 30);
+    if (clamped.length > 0) {
+      startSession(shuffle(clamped).map((c) => c.id));
     }
   }
 

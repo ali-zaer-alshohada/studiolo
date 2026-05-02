@@ -1694,15 +1694,36 @@ details[open] > .letter-head {
 .ladder-vert .rung .span {
   letter-spacing: 0.06em;
 }
-.ladder-vert .rung .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  border: 0.5px solid var(--muted);
+/* Per-rung stack track — replaces the old single .dot. Shows STACKS[i]
+   small segments per rung; filled segments visualize the card's `charge`
+   accumulator at the current rung. Past rungs are fully filled, future
+   rungs empty. Negative charge surfaces the .cammino-losing arrow. */
+.ladder-vert .rung .cammino-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   justify-self: end;
-  transition: all 320ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-.ladder-vert .rung[data-state="past"] .dot {
+.ladder-vert .rung .cammino-segment {
+  width: 6px;
+  height: 9px;
+  border: 0.5px solid var(--muted);
+  background: transparent;
+  transition: background 320ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ladder-vert .rung .cammino-segment.is-filled {
+  background: var(--muted);
+  border-color: var(--muted);
+}
+.ladder-vert .rung .cammino-losing {
+  display: inline-block;
+  font: 11px/1 var(--mono);
+  color: var(--alarm, var(--errata));
+  margin-right: 4px;
+  letter-spacing: 0;
+}
+.ladder-vert .rung[data-state="past"] .cammino-segment {
   background: var(--muted);
   border-color: var(--muted);
 }
@@ -1714,10 +1735,12 @@ details[open] > .letter-head {
   font-style: normal;
   font-weight: 500;
 }
-.ladder-vert .rung[data-state="now"] .dot {
+.ladder-vert .rung[data-state="now"] .cammino-segment.is-filled {
   background: var(--fg);
   border-color: var(--fg);
-  transform: scale(1.6);
+}
+.ladder-vert .rung[data-state="now"] .cammino-segment {
+  border-color: var(--fg);
 }
 
 /* marginalia (postille on apparatus) */
