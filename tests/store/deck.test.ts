@@ -42,18 +42,22 @@ describe("deck store · gradeWrong", () => {
     });
   });
 
-  test("resets the card's rung to 0 and increments wrongs", () => {
+  test("decrements charge and increments wrongs (stacks model — no auto-reset)", () => {
     const id = useDeckStore.getState().addCard({
       en: "I went", it: "sono andato", cat: "verbo",
     });
-    // Get to rung 2 first
+    // Two corrects: rung 0 → 1 (single shot at i), then charge 0 → 1 at ii.
     useDeckStore.getState().gradeCorrect(id);
     useDeckStore.getState().gradeCorrect(id);
-    // Then a wrong should kick it back to 0
-    useDeckStore.getState().gradeWrong(id, "ho andato", "sono andato", "ausiliare");
+    let card = useDeckStore.getState().cards.find((c) => c.id === id);
+    expect(card?.rung).toBe(1);
+    expect(card?.charge).toBe(1);
 
-    const card = useDeckStore.getState().cards.find((c) => c.id === id);
-    expect(card?.rung).toBe(0);
+    // A single wrong at ii (charge 1 → 0). Threshold is −2, so no demotion.
+    useDeckStore.getState().gradeWrong(id, "ho andato", "sono andato", "ausiliare");
+    card = useDeckStore.getState().cards.find((c) => c.id === id);
+    expect(card?.rung).toBe(1);
+    expect(card?.charge).toBe(0);
     expect(card?.wrongs).toBe(1);
   });
 
