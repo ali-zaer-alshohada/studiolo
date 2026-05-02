@@ -1366,6 +1366,40 @@ details[open] > .letter-head {
   border-color: var(--fg);
 }
 
+/* Type chooser at the top of /aggiungi — picks the kind of card. The current
+   page (carta) is shown as `is-active`; verbo / paragrafo navigate elsewhere. */
+.aggiungi-types {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 28px;
+  font: 11px/1 var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.aggiungi-types .at-label {
+  color: var(--muted);
+  margin-right: 4px;
+}
+.aggiungi-types .at-chip {
+  padding: 6px 12px;
+  border: 0.5px solid var(--hair);
+  color: var(--muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.aggiungi-types .at-chip:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+.aggiungi-types .at-chip.is-active {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+  cursor: default;
+}
+
 .aggiungi-actions {
   display: flex;
   gap: 12px;
@@ -1376,6 +1410,16 @@ details[open] > .letter-head {
   font: italic 14px/1 var(--serif);
   color: var(--accent);
   margin-left: 8px;
+}
+.study-now-link {
+  font-style: italic;
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--hair);
+  text-underline-offset: 3px;
+}
+.study-now-link:hover {
+  text-decoration-color: var(--accent);
 }
 
 .aggiungi-recent {
@@ -1398,7 +1442,7 @@ details[open] > .letter-head {
 }
 .ar-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr auto auto;
   gap: 16px;
   padding: 8px 0;
   border-bottom: 0.5px dotted var(--hair-faint);
@@ -1411,6 +1455,17 @@ details[open] > .letter-head {
 }
 .ar-row .it {
   color: var(--fg);
+}
+.ar-row .rung-mark {
+  font: italic 14px var(--serif);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  min-width: 22px;
+  text-align: center;
+}
+.ar-row .rung-collected {
+  color: var(--accent);
+  font-style: normal;
 }
 .ar-row .cat {
   font: 10px var(--mono);

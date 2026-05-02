@@ -15,6 +15,13 @@ const ARTICLE_PREFIX_RE = /^(il|lo|la|l['’]|i|gli|le|un|uno|una|un['’])\s+/i
 const DEFAULT_CAT: Category = "altro";
 const FEEDBACK_FADE_MS = 1800;
 const RECENT_LIMIT = 5;
+const ROMAN_RUNGS = ["i", "ii", "iii", "iv", "v"] as const;
+
+/** Tiny rung indicator for the recent list. Paragraphs aren't on the SRS ladder. */
+function rungIndicator(card: Card): string {
+  if (card.paragraph !== undefined) return "—";
+  return ROMAN_RUNGS[card.rung] ?? `${card.rung + 1}`;
+}
 
 /**
  * Aggiungi — page v.
@@ -125,6 +132,15 @@ export function AggiungiView() {
       </div>
 
       <div className="aggiungi-page">
+        {/* Type chooser — picks the *kind* of card. carta is this page;
+            verbo and paragrafo navigate to their dedicated sub-routes. */}
+        <nav className="aggiungi-types" aria-label="Tipo di carta">
+          <span className="at-label">tipo</span>
+          <span className="at-chip is-active" aria-current="page">carta</span>
+          <a href="/aggiungi/verbo" className="at-chip">verbo</a>
+          <a href="/aggiungi/paragrafo" className="at-chip">paragrafo</a>
+        </nav>
+
         <div className="aggiungi-block">
           <div className="aggiungi-prompt">inglese</div>
           <ContentEditableZone
@@ -176,19 +192,21 @@ export function AggiungiView() {
 
         <div className="aggiungi-actions">
           <button type="button" className="avanti-btn" onClick={handleSave}>
-            Iscrivere ↵
+            Aggiungi ↵
           </button>
-          <a href="/aggiungi/verbo" className="avanti-btn ghost" style={{ textDecoration: "none", display: "inline-block" }}>
-            verbo con coniugazione →
-          </a>
-          <a href="/aggiungi/paragrafo" className="avanti-btn ghost" style={{ textDecoration: "none", display: "inline-block" }}>
-            paragrafo per dattilografia →
-          </a>
           {savedThisSession > 0 && (
             <span className="aggiungi-feedback">
               {feedback === "iscritta"
                 ? `iscritta · ${savedThisSession} ${savedThisSession === 1 ? "carta" : "carte"}`
                 : feedback}
+              {feedback === "iscritta" && (
+                <>
+                  {" · "}
+                  <a href="/studiare" className="study-now-link">
+                    studia →
+                  </a>
+                </>
+              )}
             </span>
           )}
           {savedThisSession === 0 && feedback && (
@@ -207,6 +225,14 @@ export function AggiungiView() {
                 <div className="ar-row" key={c.id}>
                   <span className="en">{c.en}</span>
                   <span className="it">{c.it}</span>
+                  <span className="rung-mark" aria-label={`livello ${rungIndicator(c)}`}>
+                    {rungIndicator(c)}
+                    {c.collected && (
+                      <span className="rung-collected" aria-label="raccolta">
+                        {" "}✦
+                      </span>
+                    )}
+                  </span>
                   <span className="cat">{c.cat}</span>
                 </div>
               ))}

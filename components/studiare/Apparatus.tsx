@@ -10,7 +10,7 @@ type ApparatusProps = {
 };
 
 function rungLabel(hours: number): string {
-  if (hours < 24) return `${hours} ore`;
+  if (hours < 24) return hours === 1 ? "1 ora" : `${hours} ore`;
   const days = hours / 24;
   return days === 1 ? "1 giorno" : `${days} giorni`;
 }
