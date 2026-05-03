@@ -47,7 +47,9 @@ export function StudiareView() {
     // translation cards).
     const modeEligible = filterByMode(cards, m);
     const due = modeEligible.filter((c) => c.due <= Date.now());
-    const clamped = clampSession(due, modeEligible, 20, 30);
+    // Tighter sessions: 10 minimum, 15 maximum. Short focused study beats
+    // long marathons. (Was 20-30 — felt like a slog.)
+    const clamped = clampSession(due, modeEligible, 10, 15);
     if (clamped.length > 0) {
       startSession(shuffle(clamped).map((c) => c.id));
     }
