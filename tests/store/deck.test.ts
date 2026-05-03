@@ -89,6 +89,26 @@ describe("deck store · gradeWrong", () => {
     expect(children).toHaveLength(1);
   });
 
+  test("sets giocoLives to 3 (wrong card falls into the gioco pool)", () => {
+    const id = useDeckStore.getState().addCard({
+      en: "I went", it: "sono andato", cat: "verbo",
+    });
+    expect(useDeckStore.getState().cards.find((c) => c.id === id)?.giocoLives).toBeUndefined();
+    useDeckStore.getState().gradeWrong(id, "ho andato", "sono andato", "ausiliare");
+    expect(useDeckStore.getState().cards.find((c) => c.id === id)?.giocoLives).toBe(3);
+  });
+
+  test("re-misses re-charge giocoLives back to 3 (no decay below 3)", () => {
+    const id = useDeckStore.getState().addCard({
+      en: "I went", it: "sono andato", cat: "verbo",
+    });
+    useDeckStore.getState().gradeWrong(id, "ho andato", "sono andato", "ausiliare");
+    useDeckStore.getState().gradeGiocoMatch(id); // lives 3 → 2
+    expect(useDeckStore.getState().cards.find((c) => c.id === id)?.giocoLives).toBe(2);
+    useDeckStore.getState().gradeWrong(id, "ho andato", "sono andato", "ausiliare");
+    expect(useDeckStore.getState().cards.find((c) => c.id === id)?.giocoLives).toBe(3);
+  });
+
   test("DOES spawn a separate child for a different ctx (parallel chains)", () => {
     const id = useDeckStore.getState().addCard({
       en: "I think about you", it: "penso a te", cat: "verbo",
@@ -100,6 +120,52 @@ describe("deck store · gradeWrong", () => {
     const children = useDeckStore.getState().cards.filter((c) => c.isChild);
     const ctxs = children.map((c) => c.ctx).sort();
     expect(ctxs).toEqual(["preposizione", "pronome-soggetto"]);
+  });
+});
+
+describe("deck store · gradeGiocoMatch", () => {
+  test("decrements giocoLives by 1 (clamped at 0)", () => {
+    const id = useDeckStore.getState().addCard({
+      en: "to be", it: "essere", cat: "verbo",
+    });
+    useDeckStore.getState().gradeWrong(id, "x", "essere", "traduzione"); // sets lives=3
+    useDeckStore.getState().gradeGiocoMatch(id);
+    expect(useDeckStore.getState().cards.find((c) => c.id === id)?.giocoLives).toBe(2);
+    useDeckStore.getState().gradeGiocoMatch(id);
+    expect(useDeckStore.getState().cards.find((c) => c.id === id)?.giocoLives).toBe(1);
+    useDeckStore.getState().gradeGiocoMatch(id);
+    expect(useDeckStore.getState().cards.find((c) => c.id === id)?.giocoLives).toBe(0);
+    // One more — should stay at 0
+    useDeckStore.getState().gradeGiocoMatch(id);
+    expect(useDeckStore.getState().cards.find((c) => c.id === id)?.giocoLives).toBe(0);
+  });
+
+  test("also bumps charge in CAMMINO (counts as a right answer in studiare)", () => {
+    const id = useDeckStore.getState().addCard({
+      en: "to be", it: "essere", cat: "verbo",
+    });
+    useDeckStore.getState().gradeWrong(id, "x", "essere", "traduzione");
+    const before = useDeckStore.getState().cards.find((c) => c.id === id);
+    expect(before?.rung).toBe(0);
+    useDeckStore.getState().gradeGiocoMatch(id); // single shot at i → promotes to ii
+    const after = useDeckStore.getState().cards.find((c) => c.id === id);
+    expect(after?.rung).toBe(1);
+    expect(after?.charge).toBe(0); // reset on promotion
+  });
+
+  test("no-op for unknown cardId", () => {
+    expect(() => useDeckStore.getState().gradeGiocoMatch("nope")).not.toThrow();
+  });
+});
+
+describe("deck store · gradeCorrect (unchanged with giocoLives)", () => {
+  test("leaves giocoLives alone — only gioco matches decrement it", () => {
+    const id = useDeckStore.getState().addCard({
+      en: "to be", it: "essere", cat: "verbo",
+    });
+    useDeckStore.getState().gradeWrong(id, "x", "essere", "traduzione"); // lives=3
+    useDeckStore.getState().gradeCorrect(id);
+    expect(useDeckStore.getState().cards.find((c) => c.id === id)?.giocoLives).toBe(3);
   });
 });
 

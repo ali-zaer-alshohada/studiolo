@@ -74,6 +74,15 @@ export type Card = {
     when: number;
     sentence?: string;
   };
+  /**
+   * Lives left in the gioco (memory-match) pool. Set to 3 when the user gets
+   * the card wrong in studiare; decremented by 1 on each successful gioco
+   * match; the card leaves the gioco pool when it reaches 0. Each match also
+   * grants +1 charge in studiare's CAMMINO via srsCorrect.
+   *
+   * Optional / undefined = treat as 0 (not in pool).
+   */
+  giocoLives?: number;
 };
 
 export type ErrorEvent = {

@@ -54,6 +54,12 @@ export type DeckActions = {
   // SRS actions — implemented in M5.
   gradeCorrect: (cardId: string) => void;
   gradeWrong: (cardId: string, wrongInput: string, correctText: string, ctx: string) => void;
+  /**
+   * Reward a successful match in /gioco. Decrements giocoLives by 1 (clamped
+   * at 0) and grants +1 charge in studiare's CAMMINO via srsCorrect. The
+   * card leaves the gioco pool the third time it's matched (3 → 2 → 1 → 0).
+   */
+  gradeGiocoMatch: (cardId: string) => void;
   /** Update the diary sentence for a collected card. No-op if the card isn't collected yet. */
   setSentence: (cardId: string, sentence: string) => void;
   /** Replace the entire deck state with the given payload. Used by Importa → Sostituisci. */
@@ -207,6 +213,27 @@ export const useDeckStore = create<DeckState & DeckActions>()(
         });
       },
 
+      gradeGiocoMatch: (cardId) => {
+        const now = Date.now();
+        set((s) => {
+          const idx = s.cards.findIndex((c) => c.id === cardId);
+          if (idx < 0) return s;
+          const card = s.cards[idx];
+          if (!card) return s;
+          // Apply the SRS-correct grading first (charge +1, possibly promote).
+          const after = srsCorrect(card, now);
+          // Decrement giocoLives by 1, clamped at 0.
+          const lives = Math.max(0, (card.giocoLives ?? 0) - 1);
+          const cards = [...s.cards];
+          cards[idx] = { ...after, giocoLives: lives };
+          const streak = bumpStreak(
+            { streakLastDay: s.streakLastDay, streakCount: s.streakCount },
+            now,
+          );
+          return { cards, ...streak };
+        });
+      },
+
       gradeWrong: (cardId, wrongInput, correctText, ctx) => {
         const now = Date.now();
         set((s) => {
@@ -216,7 +243,12 @@ export const useDeckStore = create<DeckState & DeckActions>()(
           if (!card) return s;
 
           // 1. Update the card via the SRS wrong handler.
-          const updated = srsWrong(card, wrongInput, now);
+          // Also recharge giocoLives to 3 — the card "falls into" the gioco
+          // pool when missed. (If already in the pool, this resets the
+          // counter back up so it stays a focus until the user matches it
+          // 3 more times.)
+          const after = srsWrong(card, wrongInput, now);
+          const updated = { ...after, giocoLives: 3 };
           const cards = [...s.cards];
           cards[idx] = updated;
 

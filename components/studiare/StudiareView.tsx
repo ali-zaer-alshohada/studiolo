@@ -18,8 +18,8 @@ type StudyMode = "traduzione" | "coniugazione" | "gioco";
  * (traduzione / coniugazione / gioco). On mode pick, filters today's due
  * cards and starts the session. Esc anywhere on the page returns to Coda.
  *
- * "gioco" is deferred — clicking shows an "in arrivo" tooltip but does
- * not start a session.
+ * "gioco" navigates to /gioco (memory-match game over the wrong-answer
+ * pool); the others start a studiare session in the chosen mode.
  */
 export function StudiareView() {
   const hydrated = useHydrated();
@@ -32,12 +32,12 @@ export function StudiareView() {
   const abort = useSessionStore((s) => s.abort);
 
   const [mode, setMode] = useState<StudyMode | null>(null);
-  const [gameTip, setGameTip] = useState(false);
 
   function pickMode(m: StudyMode) {
     if (m === "gioco") {
-      setGameTip(true);
-      window.setTimeout(() => setGameTip(false), 2400);
+      // Gioco lives at its own route — navigate there instead of starting
+      // a Studiare session. (No more "in arrivo" tooltip; the section ships.)
+      router.push("/gioco");
       return;
     }
     abort();
@@ -105,22 +105,14 @@ export function StudiareView() {
           </button>
           <button
             type="button"
-            className="mode-chip mode-chip--soon"
+            className="mode-chip"
             onClick={() => pickMode("gioco")}
-            aria-label="Gioco — in arrivo"
+            aria-label="Gioco — memory match sui tuoi errori"
           >
             <span className="mode-chip-label">gioco</span>
-            <span className="mode-chip-hint">presto</span>
+            <span className="mode-chip-hint">memoria</span>
           </button>
         </div>
-        <p
-          className="mode-tip"
-          role="status"
-          aria-live="polite"
-          data-visible={gameTip ? "1" : "0"}
-        >
-          <em>In arrivo.</em> Stiamo ancora pensando come si gioca.
-        </p>
       </section>
     );
   }
