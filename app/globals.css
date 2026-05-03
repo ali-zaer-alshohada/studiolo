@@ -2146,6 +2146,29 @@ details[open] > .letter-head {
     padding: 6px;
   }
 }
+.gioco-cleared {
+  text-align: center;
+  margin: 0 0 32px;
+  padding: 24px 16px;
+  border: 0.5px solid var(--accent);
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+  border-radius: 14px;
+  animation: cert-fade-in 360ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.gioco-cleared-msg {
+  font: italic 22px/1.4 var(--serif);
+  color: var(--fg);
+  margin: 0 0 16px;
+}
+.gioco-cleared-msg em {
+  color: var(--accent);
+  font-weight: 600;
+}
+.gioco-cleared-hint {
+  font: italic 14px/1.5 var(--serif);
+  color: var(--muted);
+  margin: 0;
+}
 
 /* apparatus — right column with ladder */
 .apparatus {

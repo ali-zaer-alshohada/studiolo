@@ -55,14 +55,10 @@ export function buildBoard(pool: ReadonlyArray<Card>): Cell[] {
   return shuffle(cells);
 }
 
-/** Visible card-ids on the current board (for replacement deduplication). */
-function visibleCardIds(cells: ReadonlyArray<Cell>, except: number[]): Set<string> {
-  const out = new Set<string>();
-  cells.forEach((c, i) => {
-    if (except.includes(i)) return;
-    if (c.kind === "card") out.add(c.cardId);
-  });
-  return out;
+/** True when every cell is empty — i.e., all pairs have been matched and faded. */
+function isBoardCleared(cells: ReadonlyArray<Cell>): boolean {
+  if (cells.length === 0) return false;
+  return cells.every((c) => c.kind === "empty");
 }
 
 export function GiocoView() {
@@ -87,6 +83,15 @@ export function GiocoView() {
       initializedRef.current = true;
     }
   }, [hydrated, pool]);
+
+  function startNewGame() {
+    // Rebuild from the latest pool — the previous game's matches have already
+    // decremented giocoLives, so cards may have left or stayed.
+    const fresh = selectGiocoPool(useDeckStore.getState().cards);
+    setCells(buildBoard(fresh));
+    selectedIdxRef.current = null;
+    cooldownRef.current = false;
+  }
 
   if (!hydrated) {
     return <div className="gioco" aria-busy="true" />;
@@ -134,25 +139,15 @@ export function GiocoView() {
       if (isMatch) {
         cooldownRef.current = true;
         gradeGiocoMatch(cell.cardId);
-        // Brief pause for the user to register the match, then fade-replace.
+        // Brief pause for the user to register the match, then fade out.
+        // No replacement — matched pairs just leave the board. When all
+        // 8 pairs are matched the board is empty and we show the
+        // "complimenti" celebration with a restart button.
         window.setTimeout(() => {
           setCells((c) => {
-            const visible = visibleCardIds(c, [firstIdx, idx]);
-            // Pull a fresh card from the latest store state; pool may have
-            // shrunk if this match was the card's third.
-            const latestPool = selectGiocoPool(useDeckStore.getState().cards)
-              .filter((card) => !visible.has(card.id));
-            const replacement = latestPool[Math.floor(Math.random() * latestPool.length)] ?? null;
             const next = [...c];
-            if (replacement) {
-              const [a, b] = buildPair(replacement);
-              const swapSides = Math.random() < 0.5;
-              next[firstIdx] = swapSides ? a : b;
-              next[idx] = swapSides ? b : a;
-            } else {
-              next[firstIdx] = { kind: "empty" };
-              next[idx] = { kind: "empty" };
-            }
+            next[firstIdx] = { kind: "empty" };
+            next[idx] = { kind: "empty" };
             return next;
           });
           selectedIdxRef.current = null;
@@ -179,6 +174,7 @@ export function GiocoView() {
   }
 
   const remaining = pool.reduce((sum, c) => sum + (c.giocoLives ?? 0), 0);
+  const cleared = isBoardCleared(cells);
 
   return (
     <>
@@ -187,6 +183,23 @@ export function GiocoView() {
         <span className="gioco-pool-count">{pool.length}</span> carte ·{" "}
         <span className="gioco-pool-count">{remaining}</span> vite
       </p>
+      {cleared && (
+        <div className="gioco-cleared" role="status" aria-live="polite">
+          <p className="gioco-cleared-msg">
+            <em>Complimenti.</em> Hai trovato tutte le coppie.
+          </p>
+          {pool.length > 0 ? (
+            <button type="button" className="avanti-btn" onClick={startNewGame}>
+              Ricomincia ↻
+            </button>
+          ) : (
+            <p className="gioco-cleared-hint">
+              Il pool è vuoto — nessun errore da rivedere. Studia di più (o
+              sbaglia di più) per riempirlo.
+            </p>
+          )}
+        </div>
+      )}
       <div className="gioco-grid" role="grid" aria-label="Gioco di memoria">
         {cells.map((cell, idx) => {
           const isCard = cell.kind === "card";
