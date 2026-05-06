@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDeckStore } from "@/lib/store/deck";
 import { useUIStore } from "@/lib/store/ui";
 import { useHydrated } from "@/lib/hooks/useHydrated";
@@ -42,8 +42,10 @@ export function ErrataHero() {
   const hydrated = useHydrated();
   const errors = useDeckStore((s) => s.errors);
   const cards = useDeckStore((s) => s.cards);
+  const dismissedErrata = useDeckStore((s) => s.dismissedErrata);
+  const dismissErratum = useDeckStore((s) => s.dismissErratum);
   const filter = useUIStore((s) => s.codaFilter);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const dismissed = useMemo(() => new Set(dismissedErrata), [dismissedErrata]);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -56,13 +58,9 @@ export function ErrataHero() {
     (key: string, slotIdx: number, queue: ErrorEvent[]) => {
       const next = queue[slotIdx + 1];
       setActiveKey(next ? errKey(next) : null);
-      setDismissed((prev) => {
-        const set = new Set(prev);
-        set.add(key);
-        return set;
-      });
+      dismissErratum(key);
     },
-    [],
+    [dismissErratum],
   );
 
   // Click outside the errata-list (or press Esc) deactivates the active row.

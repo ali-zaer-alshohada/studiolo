@@ -30,6 +30,11 @@ export type DeckState = {
   lastBackup: number | null;
   /** Has the deck been seeded yet? Prevents re-seeding after the user clears all cards. */
   seeded: boolean;
+  /**
+   * Error-event keys (`${cardId}-${when}`) the user has cleared from the
+   * Coda errata hero. Persisted so reload doesn't bring them back.
+   */
+  dismissedErrata: string[];
 };
 
 export type DeckActions = {
@@ -66,6 +71,8 @@ export type DeckActions = {
   importState: (payload: DeckPayload) => void;
   /** Merge the payload into current state (dedupe cards by id, append+sort errors, MAX streak). */
   mergeState: (payload: DeckPayload) => void;
+  /** Persistently mark a Coda errata-hero entry as cleared. Idempotent. */
+  dismissErratum: (key: string) => void;
 };
 
 const initialDeckState: DeckState = {
@@ -76,6 +83,7 @@ const initialDeckState: DeckState = {
   streakCount: 0,
   lastBackup: null,
   seeded: false,
+  dismissedErrata: [],
 };
 
 export const useDeckStore = create<DeckState & DeckActions>()(
@@ -318,10 +326,17 @@ export const useDeckStore = create<DeckState & DeckActions>()(
             seeded: true,
           };
         }),
+
+      dismissErratum: (key) =>
+        set((s) =>
+          s.dismissedErrata.includes(key)
+            ? s
+            : { dismissedErrata: [...s.dismissedErrata, key] },
+        ),
     }),
     {
       name: "postilla.state.v1",
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       // Only persist data fields, not actions.
       partialize: (s) => ({
@@ -332,26 +347,30 @@ export const useDeckStore = create<DeckState & DeckActions>()(
         streakCount: s.streakCount,
         lastBackup: s.lastBackup,
         seeded: s.seeded,
+        dismissedErrata: s.dismissedErrata,
       }),
       /**
-       * v1 → v2: add `charge: 0` to every card. Existing rung values carry
-       * over 1:1 (the new ladder has the same length, just different intervals).
-       * `collected` is left undefined; the certificate at rung v will only
-       * surface for cards the user encounters going forward.
+       * v1 → v2: add `charge: 0` to every card.
+       * v2 → v3: add `dismissedErrata: []` so persisted Coda dismissals survive reload.
+       * Old rung values carry over 1:1 (ladder length unchanged); `collected` stays
+       * undefined and the certificate at rung v only surfaces for cards encountered
+       * going forward.
        */
       migrate: (persistedState, version) => {
-        if (version >= 2 || !persistedState || typeof persistedState !== "object") {
+        if (version >= 3 || !persistedState || typeof persistedState !== "object") {
           return persistedState as DeckState;
         }
         const s = persistedState as Partial<DeckState> & {
           cards?: ReadonlyArray<Card & { charge?: number }>;
         };
+        const cards = (s.cards ?? []).map((c) => ({
+          ...c,
+          charge: typeof c.charge === "number" ? c.charge : 0,
+        }));
         return {
           ...s,
-          cards: (s.cards ?? []).map((c) => ({
-            ...c,
-            charge: typeof c.charge === "number" ? c.charge : 0,
-          })),
+          cards,
+          dismissedErrata: s.dismissedErrata ?? [],
         } as DeckState;
       },
       // skipHydration: false (default) — Zustand reads localStorage on client mount.
