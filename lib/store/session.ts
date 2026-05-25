@@ -38,6 +38,12 @@ export type SessionActions = {
   start: (queue: string[]) => void;
   /** Transition: prompt → corretto. */
   markCorrect: () => void;
+  /**
+   * Count a read-and-advance (acquisition mode) toward the session tally.
+   * Increments correctCount WITHOUT flipping state — ReadCard manages its own
+   * reveal locally and advances directly, so there's no corretto UI to show.
+   */
+  noteRead: () => void;
   /** Transition: prompt → sbagliato; record the correct answer for display. */
   markWrong: (userInput: string, correct: string) => void;
   /** Move on to the next card; resets state to prompt. Returns true if advanced, false if at end. */
@@ -73,6 +79,17 @@ export const useSessionStore = create<SessionStoreState & SessionActions>()((set
         active: {
           ...s.active,
           state: "corretto",
+          correctCount: s.active.correctCount + 1,
+        },
+      };
+    }),
+
+  noteRead: () =>
+    set((s) => {
+      if (!s.active) return s;
+      return {
+        active: {
+          ...s.active,
           correctCount: s.active.correctCount + 1,
         },
       };

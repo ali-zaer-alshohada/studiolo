@@ -18,6 +18,7 @@
   --accent: #1a3050; /* navy — the only UI accent */
   --alarm: #8b2920; /* boxed UI red */
   --errata: #b30000; /* italic emendation red */
+  --attention: #b8923a; /* ochre — review-grade "giallo" (forse). Tune freely. */
 
   --warm: 0; /* ambient warmth · -1 cool · 0 neutral · +1 warm */
   --bg: hsl(calc(40 + var(--warm) * 8), calc(38% + var(--warm) * 6%), 93%);
@@ -69,6 +70,7 @@ html[data-carattere="antica"] *::after {
   --accent: #5b7ba8;
   --alarm: #c4624f;
   --errata: #d96a6a;
+  --attention: #d8b868; /* ochre, lifted for dark ground */
 }
 
 /* ─── reset ─── */
@@ -1911,6 +1913,87 @@ details[open] > .letter-head {
 .avanti-btn:hover {
   background: var(--accent);
   color: var(--bg);
+}
+
+/* ─── read card (acquisition · rungs i–ii) ───────────────────────────
+   "x means y" — reveal, then advance. The reveal button reads as a quiet
+   affordance (muted), distinct from the committed accent of avanti-btn.
+   A hairline above the answer echoes the page-rule / errata divider. */
+.reveal-btn {
+  margin-top: 16px;
+  background: transparent;
+  border: 0.5px dashed var(--hair);
+  color: var(--muted);
+  cursor: pointer;
+  font: 11px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  transition:
+    border-color 180ms ease,
+    color 180ms ease;
+}
+.reveal-btn:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+.revealed-state {
+  margin-top: 4px;
+}
+.read-answer {
+  font: 32px/1.25 var(--serif);
+  margin: 0;
+  padding-top: 20px;
+  border-top: 0.5px solid var(--hair);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  color: var(--fg);
+}
+
+/* ─── self-grade row (rosso · giallo · blu) ──────────────────────────
+   Three buttons that choose the next due date. Colour is carried on a
+   3px top edge (calm at rest); hover floods the button with the colour.
+   rosso = relearn soon · giallo = medium · blu = not for a while. */
+.grade-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+.grade-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 0.5px solid var(--hair);
+  border-top: 3px solid var(--hair);
+  cursor: pointer;
+  padding: 13px 8px;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+.grade-when {
+  font: 10px/1 var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 160ms ease;
+}
+.grade-btn.rosso  { border-top-color: var(--alarm); }
+.grade-btn.giallo { border-top-color: var(--attention); }
+.grade-btn.blu    { border-top-color: var(--accent); }
+.grade-btn.rosso:hover  { background: var(--alarm); }
+.grade-btn.giallo:hover { background: var(--attention); }
+.grade-btn.blu:hover    { background: var(--accent); }
+/* rosso/blu are dark enough to carry cream text; giallo (ochre) wants ink. */
+.grade-btn.rosso:hover .grade-when,
+.grade-btn.blu:hover .grade-when {
+  color: var(--bg);
+}
+.grade-btn.giallo:hover .grade-when {
+  color: var(--charcoal);
 }
 
 /* ─── certificate ribbon — appears at the moment of mastery (rung v + first

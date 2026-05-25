@@ -7,6 +7,7 @@ import { makeAllSeedCards, SEED_COUNT } from "@/data/seeds";
 import { makeAllSeedVerbs } from "@/data/seedVerbs";
 import type { ConjugationTable } from "@/lib/srs/types";
 import { srsCorrect, srsWrong } from "@/lib/srs/ladder";
+import { reviewedCard, type ReviewGrade } from "@/lib/srs/review";
 import { shouldSpawnChild, makeChild } from "@/lib/srs/child";
 import { bumpStreak } from "@/lib/date/streak";
 import type { DeckPayload } from "@/lib/io/types";
@@ -59,6 +60,13 @@ export type DeckActions = {
   // SRS actions — implemented in M5.
   gradeCorrect: (cardId: string) => void;
   gradeWrong: (cardId: string, wrongInput: string, correctText: string, ctx: string) => void;
+  /**
+   * Self-grade a card from /studiare's reveal flow (rosso/giallo/blu). Reschedules
+   * via reviewedCard. A rosso also logs a miss (no typed text), may spawn a chained
+   * child under `ctx`, and drops the card into the gioco pool — so the errata
+   * apparatus stays fed even though there's no typed answer to capture.
+   */
+  reviewCard: (cardId: string, grade: ReviewGrade, ctx: string, correct: string) => void;
   /**
    * Reward a successful match in /gioco. Decrements giocoLives by 1 (clamped
    * at 0) and grants +1 charge in studiare's CAMMINO via srsCorrect. The
@@ -280,6 +288,51 @@ export const useDeckStore = create<DeckState & DeckActions>()(
             now,
           );
 
+          return { cards, errors: [...s.errors, errorEvent], ...streak };
+        });
+      },
+
+      reviewCard: (cardId, grade, ctx, correct) => {
+        const now = Date.now();
+        set((s) => {
+          const idx = s.cards.findIndex((c) => c.id === cardId);
+          if (idx < 0) return s; // unknown card → no-op
+          const card = s.cards[idx];
+          if (!card) return s;
+
+          // 1. Reschedule via the self-grade model.
+          const after = reviewedCard(card, grade, now);
+          const cards = [...s.cards];
+
+          if (grade !== "rosso") {
+            // giallo / blu — a clean review, nothing logged.
+            cards[idx] = after;
+            const streak = bumpStreak(
+              { streakLastDay: s.streakLastDay, streakCount: s.streakCount },
+              now,
+            );
+            return { cards, ...streak };
+          }
+
+          // 2. rosso — treat as a miss so the apparatus stays fed.
+          //    No typed text exists, so `wrong` is empty; the card still surfaces
+          //    in Statistiche/Coda, can spawn a child, and falls into the gioco pool.
+          const updated = { ...after, giocoLives: 3 };
+          cards[idx] = updated;
+          if (shouldSpawnChild(updated, cards, ctx)) {
+            cards.push(makeChild(updated, ctx, now));
+          }
+          const errorEvent: ErrorEvent = {
+            cardId,
+            when: now,
+            wrong: "",
+            correct,
+            ctx,
+          };
+          const streak = bumpStreak(
+            { streakLastDay: s.streakLastDay, streakCount: s.streakCount },
+            now,
+          );
           return { cards, errors: [...s.errors, errorEvent], ...streak };
         });
       },

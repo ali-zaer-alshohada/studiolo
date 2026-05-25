@@ -281,3 +281,49 @@ describe("deck store · mergeState", () => {
     expect(lastBackup!).toBeLessThanOrEqual(after);
   });
 });
+
+describe("deck store · reviewCard (studiare self-grade)", () => {
+  test("rosso sends the word to errata — appends an ErrorEvent", () => {
+    const id = useDeckStore.getState().addCard({
+      en: "the house", it: "la casa", cat: "sostantivo",
+    });
+    useDeckStore.getState().reviewCard(id, "rosso", "traduzione", "la casa");
+
+    const errors = useDeckStore.getState().errors;
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({
+      cardId: id,
+      correct: "la casa",
+      ctx: "traduzione",
+    });
+  });
+
+  test("rosso drops the card into the gioco pool (giocoLives = 3)", () => {
+    const id = useDeckStore.getState().addCard({
+      en: "the house", it: "la casa", cat: "sostantivo",
+    });
+    useDeckStore.getState().reviewCard(id, "rosso", "traduzione", "la casa");
+    const card = useDeckStore.getState().cards.find((c) => c.id === id);
+    expect(card?.giocoLives).toBe(3);
+  });
+
+  test("blu climbs a rung and logs NO error", () => {
+    const id = useDeckStore.getState().addCard({
+      en: "the house", it: "la casa", cat: "sostantivo",
+    });
+    useDeckStore.getState().reviewCard(id, "blu", "traduzione", "la casa");
+    const card = useDeckStore.getState().cards.find((c) => c.id === id);
+    expect(card?.rung).toBe(1);
+    expect(useDeckStore.getState().errors).toHaveLength(0);
+  });
+
+  test("giallo holds and logs NO error", () => {
+    const id = useDeckStore.getState().addCard({
+      en: "the house", it: "la casa", cat: "sostantivo",
+    });
+    useDeckStore.getState().reviewCard(id, "giallo", "traduzione", "la casa");
+    const card = useDeckStore.getState().cards.find((c) => c.id === id);
+    expect(card?.rung).toBe(0);
+    expect(useDeckStore.getState().errors).toHaveLength(0);
+  });
+});

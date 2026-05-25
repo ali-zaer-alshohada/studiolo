@@ -9,7 +9,7 @@ import { shuffle, clampSession } from "@/lib/srs/queue";
 import { isConjugatable } from "@/lib/srs/conjugation";
 import type { Card } from "@/lib/srs/types";
 import { SessionBar } from "./SessionBar";
-import { QuizCard } from "./QuizCard";
+import { ReadCard } from "./ReadCard";
 
 type StudyMode = "traduzione" | "coniugazione" | "gioco";
 
@@ -191,7 +191,7 @@ export function StudiareView() {
       </div>
 
       <SessionBar done={active!.idx} total={active!.queue.length} />
-      <QuizCard
+      <ReadCard
         key={currentCard.id}
         card={currentCard}
         onFinishedAnswering={() => advance()}
